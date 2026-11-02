@@ -86,6 +86,50 @@ public sealed class AdbService
             : result.CombinedOutput);
     }
 
+
+
+    /// <summary>
+    /// Bootstraps classic ADB-over-TCP from an authorized USB session, discovers the
+    /// headset's WLAN IPv4 address, then connects to port 5555. No pairing code or
+    /// manually entered IP address is needed for this USB-first workflow.
+    /// </summary>
+    public async Task<AdbCommandResult> EnableUsbWifiAndConnectAsync(
+        string usbSerial,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(usbSerial) || usbSerial.Contains(':'))
+            return new(false, "An authorized USB-connected headset is required for Wi-Fi setup.");
+
+        var tcp = await _runner.RunAsync(_tools.AdbPath,
+            ["-s", usbSerial, "tcpip", "5555"],
+            TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
+        if (tcp.TimedOut || tcp.ExitCode != 0)
+            return new(false, string.IsNullOrWhiteSpace(tcp.CombinedOutput)
+                ? "Could not enable ADB over TCP on the USB-connected headset."
+                : tcp.CombinedOutput.Trim());
+
+        var address = await _runner.RunAsync(_tools.AdbPath,
+            ["-s", usbSerial, "shell", "ip", "-f", "inet", "addr", "show", "wlan0"],
+            TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+        var match = Regex.Match(address.StandardOutput, @"\\binet\\s+(?<ip>(?:[0-9]{1,3}\\.){3}[0-9]{1,3})/");
+        if (!match.Success)
+        {
+            var route = await _runner.RunAsync(_tools.AdbPath,
+                ["-s", usbSerial, "shell", "ip", "route", "get", "1.1.1.1"],
+                TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+            match = Regex.Match(route.StandardOutput, @"\\bsrc\\s+(?<ip>(?:[0-9]{1,3}\\.){3}[0-9]{1,3})");
+        }
+
+        if (!match.Success)
+            return new(false, "ADB over TCP was enabled, but the headset WLAN address could not be discovered. Check that Quest and PC are on the same Wi-Fi network.");
+
+        var endpoint = match.Groups["ip"].Value + ":5555";
+        var connect = await ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+        return connect.IsSuccess
+            ? new(true, "Headset discovered and connected over Wi-Fi at " + endpoint + ".")
+            : new(false, "Headset IP discovered at " + endpoint + ", but Wi-Fi connection failed: " + connect.Message);
+    }
+
     public static bool IsValidEndpoint(string? endpoint)
     {
         if (string.IsNullOrWhiteSpace(endpoint))
