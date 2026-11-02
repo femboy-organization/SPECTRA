@@ -8,7 +8,8 @@
         WindowStartupLocation="CenterScreen"
         Background="#F7F4EE"
         Foreground="#302C29"
-        KeyDown="OnWindowKeyDown">
+        KeyDown="OnWindowKeyDown"
+        Topmost="{Binding IsAlwaysOnTop}">
   <Window.Styles>
     <Style Selector="Button">
       <Setter Property="Background" Value="#E8D8CB"/>
@@ -79,7 +80,7 @@
             <TextBlock Text="Live preview" FontSize="19" FontWeight="SemiBold"/>
             <TextBlock Text="{Binding QualityDescription}" FontSize="12" Foreground="#77716A"/>
           </StackPanel>
-          <Button Grid.Column="1" Content="Fullscreen" Classes="subtle" Click="OnFullscreenClick"/>
+
         </Grid>
 
         <Border Grid.Row="1" Background="#F7F4EE" BorderThickness="0"
@@ -90,6 +91,16 @@
                     Background="#151515" BorderThickness="0" CornerRadius="0" ClipToBounds="True">
               <local:ScrcpyVideoHost x:Name="VideoHost"/>
             </Border>
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom" Margin="12" ZIndex="10">
+              <Button Content="▣" Width="38" Height="38" Padding="0"
+                      Background="#99000000" Foreground="#FFFFFF" CornerRadius="7"
+                      ToolTip.Tip="Keep SPECTRA above other windows"
+                      Click="OnAlwaysOnTopClick"/>
+              <Button Content="⛶" Width="38" Height="38" Padding="0"
+                      Background="#99000000" Foreground="#FFFFFF" CornerRadius="7"
+                      ToolTip.Tip="Fullscreen (F)" Click="OnFullscreenClick"/>
+            </StackPanel>
             <Border IsVisible="{Binding IsVideoPlaceholderVisible}" Background="#F0ECE5">
               <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="13" MaxWidth="400">
                 <Border Width="70" Height="70" CornerRadius="35" Background="#E5D7CA">
@@ -152,7 +163,9 @@
             </StackPanel>
           </Border>
 
-          <Border Background="#FFFFFF" BorderBrush="#E9E2D9" BorderThickness="1" CornerRadius="14" Padding="18">
+          <Button Content="Additional settings  ⚙" Command="{Binding ToggleAdvancedSettingsCommand}"
+                  HorizontalAlignment="Stretch" Classes="subtle"/>
+          <Border IsVisible="{Binding IsAdvancedSettingsOpen}" Background="#FFFFFF" BorderBrush="#E9E2D9" BorderThickness="1" CornerRadius="14" Padding="18">
             <StackPanel Spacing="11">
               <StackPanel Spacing="3">
                 <TextBlock Text="Wireless debugging" FontSize="17" FontWeight="SemiBold"/>
@@ -181,6 +194,10 @@
 
           <Border Background="#FFFFFF" BorderBrush="#E9E2D9" BorderThickness="1" CornerRadius="14" Padding="18">
             <StackPanel Spacing="12">
+              <StackPanel Spacing="3">
+                <TextBlock Text="Appearance" FontSize="17" FontWeight="SemiBold"/>
+                <CheckBox Content="Use pastel dark theme" IsChecked="{Binding IsDarkTheme}"/>
+              </StackPanel>
               <StackPanel Spacing="3">
                 <TextBlock Text="Stream quality" FontSize="17" FontWeight="SemiBold"/>
                 <TextBlock Text="Changes apply to the next stream. Stop streaming to edit quality."
@@ -226,6 +243,13 @@
                 <TextBlock Grid.Column="2" Text="+180°" FontSize="10" Foreground="#77716A"
                            HorizontalAlignment="Right"/>
               </Grid>
+              <TextBlock Text="Manual calibration offset · live preview only" FontSize="11" Foreground="#77716A"/>
+              <TextBlock Text="{Binding CalibrationOffsetX, StringFormat='Horizontal · {0:0} px'}" FontSize="11"/>
+              <Slider Minimum="-100" Maximum="100" Value="{Binding CalibrationOffsetX}"/>
+              <TextBlock Text="{Binding CalibrationOffsetY, StringFormat='Vertical · {0:0} px'}" FontSize="11"/>
+              <Slider Minimum="-100" Maximum="100" Value="{Binding CalibrationOffsetY}"/>
+              <Button Content="Apply calibration" Command="{Binding ApplyCalibrationCommand}" Classes="primary"/>
+              <TextBlock Text="Eye, crop, rotation and encoder quality are fixed when scrcpy starts; applying those requires restarting the video process. Calibration offset and theme apply live." FontSize="10" Foreground="#77716A" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
 
