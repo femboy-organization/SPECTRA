@@ -72,6 +72,9 @@ public sealed class ScrcpyStreamingService
                 : AppContext.BaseDirectory
         };
 
+        // SDL3 reads this hint before creating the renderer; enable synchronized presentation.
+        startInfo.Environment["SDL_RENDER_VSYNC"] = "1";
+
         startInfo.ArgumentList.Add($"--serial={deviceSerial}");
         startInfo.ArgumentList.Add($"--window-title={title}");
         startInfo.ArgumentList.Add("--video-source=display"); // Use the normal 2D Android display stream, not a camera/3D source.
