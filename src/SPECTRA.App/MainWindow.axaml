@@ -6,48 +6,89 @@
         Width="1440" Height="980"
         MinWidth="1000" MinHeight="700"
         WindowStartupLocation="CenterScreen"
-        Background="#20212A"
-        Foreground="#E8E3EA"
-        KeyDown="OnWindowKeyDown">
+        Background="{DynamicResource WindowBg}"
+        Foreground="{DynamicResource TextMain}"
+        KeyDown="OnWindowKeyDown"
+        Topmost="{Binding IsAlwaysOnTop}">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="WindowBg" Color="#F7F4EE"/>
+          <SolidColorBrush x:Key="SurfaceBg" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#F0ECE5"/>
+          <SolidColorBrush x:Key="TextMain" Color="#302C29"/>
+          <SolidColorBrush x:Key="TextMuted" Color="#77716A"/>
+          <SolidColorBrush x:Key="BorderSoft" Color="#E9E2D9"/>
+          <SolidColorBrush x:Key="ControlBg" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="ControlBorder" Color="#E4DCD1"/>
+          <SolidColorBrush x:Key="ButtonBg" Color="#E8D8CB"/>
+          <SolidColorBrush x:Key="ButtonText" Color="#4F4A45"/>
+          <SolidColorBrush x:Key="AccentBg" Color="#6F7663"/>
+          <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="DangerBg" Color="#F2DEDA"/>
+          <SolidColorBrush x:Key="DangerText" Color="#843E34"/>
+          <SolidColorBrush x:Key="PillBg" Color="#E9DAD0"/>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="WindowBg" Color="#20212A"/>
+          <SolidColorBrush x:Key="SurfaceBg" Color="#2B2C37"/>
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#353641"/>
+          <SolidColorBrush x:Key="TextMain" Color="#E8E3EA"/>
+          <SolidColorBrush x:Key="TextMuted" Color="#A9A5B2"/>
+          <SolidColorBrush x:Key="BorderSoft" Color="#45414F"/>
+          <SolidColorBrush x:Key="ControlBg" Color="#353641"/>
+          <SolidColorBrush x:Key="ControlBorder" Color="#494A57"/>
+          <SolidColorBrush x:Key="ButtonBg" Color="#45414F"/>
+          <SolidColorBrush x:Key="ButtonText" Color="#E8E3EA"/>
+          <SolidColorBrush x:Key="AccentBg" Color="#777A67"/>
+          <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="DangerBg" Color="#594047"/>
+          <SolidColorBrush x:Key="DangerText" Color="#E6B8B5"/>
+          <SolidColorBrush x:Key="PillBg" Color="#48404F"/>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
   <Window.Styles>
     <Style Selector="Button">
-      <Setter Property="Background" Value="#45414F"/>
-      <Setter Property="Foreground" Value="#E8E3EA"/>
+      <Setter Property="Background" Value="{DynamicResource ButtonBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextMain}"/>
       <Setter Property="Padding" Value="14,9"/>
       <Setter Property="CornerRadius" Value="10"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="FontSize" Value="13"/>
     </Style>
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#A9B59C"/>
-      <Setter Property="Foreground" Value="#2B2C37"/>
+      <Setter Property="Background" Value="{DynamicResource AccentBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource SurfaceBg}"/>
     </Style>
     <Style Selector="Button.subtle">
-      <Setter Property="Background" Value="#353641"/>
-      <Setter Property="Foreground" Value="#DDD7E1"/>
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}"/>
+      <Setter Property="Foreground" Value="{DynamicResource ButtonText}"/>
     </Style>
     <Style Selector="Button.danger">
-      <Setter Property="Background" Value="#594047"/>
-      <Setter Property="Foreground" Value="#E6B8B5"/>
+      <Setter Property="Background" Value="{DynamicResource DangerBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource DangerText}"/>
     </Style>
     <Style Selector="TextBox">
-      <Setter Property="Background" Value="#2B2C37"/>
-      <Setter Property="BorderBrush" Value="#494A57"/>
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="CornerRadius" Value="9"/>
       <Setter Property="Padding" Value="10,8"/>
       <Setter Property="FontSize" Value="13"/>
     </Style>
     <Style Selector="ComboBox">
-      <Setter Property="Background" Value="#2B2C37"/>
-      <Setter Property="BorderBrush" Value="#494A57"/>
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="CornerRadius" Value="9"/>
       <Setter Property="Padding" Value="8,5"/>
       <Setter Property="FontSize" Value="13"/>
     </Style>
     <Style Selector="CheckBox">
-      <Setter Property="Foreground" Value="#E8E3EA"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextMain}"/>
       <Setter Property="FontSize" Value="13"/>
     </Style>
   </Window.Styles>
@@ -57,13 +98,13 @@
       <StackPanel Spacing="4">
         <StackPanel Orientation="Horizontal" Spacing="10">
           <TextBlock Text="SPECTRA" FontSize="28" FontWeight="Bold" LetterSpacing="2"/>
-          <Border Background="#48404F" CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+          <Border Background="{DynamicResource PillBg}" CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
             <TextBlock Text="PREVIEW" FontSize="9" FontWeight="Bold" LetterSpacing="1"/>
           </Border>
         </StackPanel>
-        <TextBlock Text="Quest display, directly in your desktop workspace." Foreground="#A9A5B2" FontSize="13"/>
+        <TextBlock Text="Quest display, directly in your desktop workspace." Foreground="{DynamicResource TextMuted}" FontSize="13"/>
       </StackPanel>
-      <Border Grid.Column="1" Background="#2B2C37" BorderBrush="#41424F" BorderThickness="1"
+      <Border Grid.Column="1" Background="{DynamicResource SurfaceBg}" BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1"
               CornerRadius="12" Padding="14,10" VerticalAlignment="Center">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Ellipse Width="8" Height="8" Fill="{Binding ConnectionDotBrush}" VerticalAlignment="Center"/>
@@ -77,12 +118,12 @@
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="3">
             <TextBlock Text="Live preview" FontSize="19" FontWeight="SemiBold"/>
-            <TextBlock Text="{Binding QualityDescription}" FontSize="12" Foreground="#A9A5B2"/>
+            <TextBlock Text="{Binding QualityDescription}" FontSize="12" Foreground="{DynamicResource TextMuted}"/>
           </StackPanel>
-          <Button Grid.Column="1" Content="Fullscreen" Classes="subtle" Click="OnFullscreenClick"/>
+
         </Grid>
 
-        <Border Grid.Row="1" Background="#20212A" BorderThickness="0"
+        <Border Grid.Row="1" Background="{DynamicResource WindowBg}" BorderThickness="0"
                 CornerRadius="0" ClipToBounds="True" MinHeight="400">
           <Grid x:Name="PreviewArea">
             <Border x:Name="VideoFrame" Width="800" Height="450"
@@ -90,28 +131,38 @@
                     Background="#151515" BorderThickness="0" CornerRadius="0" ClipToBounds="True">
               <local:ScrcpyVideoHost x:Name="VideoHost"/>
             </Border>
-            <Border IsVisible="{Binding IsVideoPlaceholderVisible}" Background="#292A35">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom" Margin="12" Panel.ZIndex="10">
+              <Button Content="▣" Width="38" Height="38" Padding="0"
+                      Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
+                      ToolTip.Tip="Keep SPECTRA above other windows"
+                      Click="OnAlwaysOnTopClick"/>
+              <Button Content="⛶" Width="38" Height="38" Padding="0"
+                      Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
+                      ToolTip.Tip="Fullscreen (F)" Click="OnFullscreenClick"/>
+            </StackPanel>
+            <Border IsVisible="{Binding IsVideoPlaceholderVisible}" Background="{DynamicResource SurfaceAlt}">
               <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="13" MaxWidth="400">
-                <Border Width="70" Height="70" CornerRadius="35" Background="#49424F">
-                  <TextBlock Text="◉" FontSize="31" Foreground="#C2B6D0"
+                <Border Width="70" Height="70" CornerRadius="35" Background="#E5D7CA">
+                  <TextBlock Text="◉" FontSize="31" Foreground="#777A67"
                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <TextBlock Text="Your Quest display will appear here" FontSize="18" FontWeight="SemiBold"
                            HorizontalAlignment="Center" TextAlignment="Center"/>
                 <TextBlock Text="Connect a headset, then start the stream. Video is embedded in this window."
-                           FontSize="12" Foreground="#A9A5B2" TextWrapping="Wrap"
+                           FontSize="12" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
                            HorizontalAlignment="Center" TextAlignment="Center"/>
               </StackPanel>
             </Border>
           </Grid>
         </Border>
 
-        <Border Grid.Row="2" Background="#2B2C37" BorderBrush="#41424F" BorderThickness="1"
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBg}" BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1"
                 CornerRadius="12" Padding="16,12">
           <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
             <StackPanel Spacing="3" VerticalAlignment="Center">
               <TextBlock Text="{Binding ActivityTitle}" FontWeight="SemiBold" FontSize="13"/>
-              <TextBlock Text="{Binding ActivityMessage}" FontSize="11" Foreground="#A9A5B2"
+              <TextBlock Text="{Binding ActivityMessage}" FontSize="11" Foreground="{DynamicResource TextMuted}"
                          TextWrapping="Wrap" MaxHeight="44"/>
             </StackPanel>
             <Button Grid.Column="1" Content="Refresh devices" Classes="subtle"
@@ -129,112 +180,122 @@
 
       <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16">
-          <Border Background="#2B2C37" BorderBrush="#41424F" BorderThickness="1" CornerRadius="14" Padding="18">
+          <Border Background="{DynamicResource SurfaceBg}" BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1" CornerRadius="14" Padding="18">
             <StackPanel Spacing="12">
               <StackPanel Spacing="3">
                 <TextBlock Text="Device" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding DeviceStateText}" Foreground="#A9A5B2" FontSize="12"/>
+                <TextBlock Text="{Binding DeviceStateText}" Foreground="{DynamicResource TextMuted}" FontSize="12"/>
               </StackPanel>
-              <TextBlock Text="ADB device" FontSize="11" Foreground="#A9A5B2"/>
+              <TextBlock Text="ADB device" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
               <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"
                         IsEnabled="{Binding CanChooseDevice}" MinHeight="38">
                 <ComboBox.ItemTemplate>
                   <DataTemplate>
                     <StackPanel Orientation="Horizontal" Spacing="9">
                       <TextBlock Text="{Binding Serial}" FontWeight="Medium"/>
-                      <TextBlock Text="{Binding State}" Foreground="#A9A5B2" FontSize="11"/>
+                      <TextBlock Text="{Binding State}" Foreground="{DynamicResource TextMuted}" FontSize="11"/>
                     </StackPanel>
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
               <TextBlock Text="USB: connect the headset and accept the debugging prompt. Refresh to rescan."
-                         TextWrapping="Wrap" FontSize="11" Foreground="#A9A5B2"/>
+                         TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
             </StackPanel>
           </Border>
 
-          <Border Background="#2B2C37" BorderBrush="#41424F" BorderThickness="1" CornerRadius="14" Padding="18">
+          <Button Content="Additional settings  ⚙" Command="{Binding ToggleAdvancedSettingsCommand}"
+                  HorizontalAlignment="Stretch" Classes="subtle"/>
+          <Border IsVisible="{Binding IsAdvancedSettingsOpen}" Background="{DynamicResource SurfaceBg}" BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1" CornerRadius="14" Padding="18">
             <StackPanel Spacing="11">
               <StackPanel Spacing="3">
                 <TextBlock Text="Wireless debugging" FontSize="17" FontWeight="SemiBold"/>
                 <TextBlock Text="Pair once, then connect with the device endpoint." FontSize="11"
-                           Foreground="#A9A5B2" TextWrapping="Wrap"/>
+                           Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
               </StackPanel>
-              <CheckBox Content="Automatically reconnect to saved Wi-Fi device"
-                        IsChecked="{Binding AutoConnectWifi}" IsEnabled="{Binding CanChooseDevice}"/>
-              <TextBlock Text="Pairing address (host:port)" FontSize="11" Foreground="#A9A5B2"/>
+              <TextBlock Text="Pairing address (host:port)" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
               <TextBox Text="{Binding PairingEndpoint}" Watermark="192.168.1.20:37123"
                        IsEnabled="{Binding CanChooseDevice}"/>
-              <TextBlock Text="Pairing code" FontSize="11" Foreground="#A9A5B2"/>
+              <TextBlock Text="Pairing code" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
               <TextBox Text="{Binding PairingCode}" Watermark="Code shown in Quest"
                        IsEnabled="{Binding CanChooseDevice}"/>
               <Button Content="Pair headset" Command="{Binding PairWirelessCommand}"
                       IsEnabled="{Binding CanChooseDevice}" HorizontalAlignment="Stretch"/>
-              <Border Height="1" Background="#45434F" Margin="0,2"/>
-              <TextBlock Text="Device address (host:port)" FontSize="11" Foreground="#A9A5B2"/>
+              <Border Height="1" Background="#EEE7DE" Margin="0,2"/>
+              <TextBlock Text="Device address (host:port)" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
               <TextBox Text="{Binding DeviceEndpoint}" Watermark="192.168.1.20:5555"
                        IsEnabled="{Binding CanChooseDevice}"/>
               <Button Content="Connect over Wi-Fi" Classes="subtle"
                       Command="{Binding ConnectWirelessCommand}" IsEnabled="{Binding CanChooseDevice}"
                       HorizontalAlignment="Stretch"/>
               <TextBlock Text="In Quest, enable Developer mode and Wireless debugging. The pairing port and connection port are different; enter each as shown in the headset."
-                         FontSize="11" Foreground="#A9A5B2" TextWrapping="Wrap"/>
+                         FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
 
-          <Border Background="#2B2C37" BorderBrush="#41424F" BorderThickness="1" CornerRadius="14" Padding="18">
+          <Border Background="{DynamicResource SurfaceBg}" BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1" CornerRadius="14" Padding="18">
             <StackPanel Spacing="12">
               <StackPanel Spacing="3">
+                <TextBlock Text="Appearance" FontSize="17" FontWeight="SemiBold"/>
+                <CheckBox Content="Use pastel dark theme" IsChecked="{Binding IsDarkTheme}"/>
+              </StackPanel>
+              <StackPanel Spacing="3">
                 <TextBlock Text="Stream quality" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="Changes apply to the next stream. Stop streaming to edit quality."
-                           FontSize="11" Foreground="#A9A5B2" TextWrapping="Wrap"/>
+                <TextBlock Text="You can change these settings while streaming; they take effect on the next stream."
+                           FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
               </StackPanel>
               <CheckBox Content="Automatic quality (recommended)"
                         IsChecked="{Binding IsAutomaticQuality}" IsEnabled="{Binding CanEditQuality}"/>
               <StackPanel Spacing="6" Opacity="{Binding ManualQualityOpacity}">
-                <TextBlock Text="Maximum resolution" FontSize="11" Foreground="#A9A5B2"/>
+                <TextBlock Text="Maximum resolution" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
                 <ComboBox ItemsSource="{Binding ResolutionOptions}" SelectedItem="{Binding SelectedResolution}"
                           IsEnabled="{Binding CanEditQualityAndManualQuality}"/>
-                <TextBlock Text="Frames per second" FontSize="11" Foreground="#A9A5B2"/>
+                <TextBlock Text="Frames per second" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
                 <ComboBox ItemsSource="{Binding FrameRateOptions}" SelectedItem="{Binding SelectedFps}"
                           IsEnabled="{Binding CanEditQualityAndManualQuality}"/>
-                <TextBlock Text="Video bitrate (Mbps)" FontSize="11" Foreground="#A9A5B2"/>
+                <TextBlock Text="Video bitrate (Mbps)" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
                 <ComboBox ItemsSource="{Binding BitrateOptions}" SelectedItem="{Binding SelectedBitrateMbps}"
                           IsEnabled="{Binding CanEditQualityAndManualQuality}"/>
               </StackPanel>
             </StackPanel>
           </Border>
 
-          <Border Background="#2B2C37" BorderBrush="#41424F" BorderThickness="1" CornerRadius="14" Padding="18">
+          <Border Background="{DynamicResource SurfaceBg}" BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1" CornerRadius="14" Padding="18">
             <StackPanel Spacing="11">
               <StackPanel Spacing="3">
                 <TextBlock Text="Video framing" FontSize="17" FontWeight="SemiBold"/>
                 <TextBlock Text="Show one lens only. Changes apply to the next stream."
-                           FontSize="11" Foreground="#A9A5B2" TextWrapping="Wrap"/>
+                           FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
               </StackPanel>
-              <TextBlock Text="Eye" FontSize="11" Foreground="#A9A5B2"/>
-              <TextBlock Text="Default alignment: left +22° · right −22° (independent settings)"
-                         FontSize="10" Foreground="#A9A5B2" TextWrapping="Wrap"/>
+              <TextBlock Text="Eye" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
               <ComboBox ItemsSource="{Binding EyeOptions}" SelectedItem="{Binding SelectedEye}"
                         IsEnabled="{Binding CanEditVideo}" MinHeight="38"/>
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="Rotation" FontSize="11" Foreground="#A9A5B2"/>
+                <TextBlock Text="Rotation" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
                 <TextBlock Grid.Column="1" Text="{Binding RotationDescription}"
                            FontSize="12" FontWeight="SemiBold"/>
               </Grid>
               <Slider Minimum="-180" Maximum="180" TickFrequency="1"
                       Value="{Binding RotationDegrees}" IsEnabled="{Binding CanEditVideo}"/>
               <Grid ColumnDefinitions="*,*,*">
-                <TextBlock Text="-180°" FontSize="10" Foreground="#A9A5B2"/>
-                <TextBlock Grid.Column="1" Text="0°" FontSize="10" Foreground="#A9A5B2"
+                <TextBlock Text="-180°" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                <TextBlock Grid.Column="1" Text="0°" FontSize="10" Foreground="{DynamicResource TextMuted}"
                            HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="2" Text="+180°" FontSize="10" Foreground="#A9A5B2"
+                <TextBlock Grid.Column="2" Text="+180°" FontSize="10" Foreground="{DynamicResource TextMuted}"
                            HorizontalAlignment="Right"/>
               </Grid>
+              <TextBlock Text="Manual calibration offset · live preview only" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+              <TextBlock Text="{Binding CalibrationOffsetX, StringFormat='Horizontal · {0:0} px'}" FontSize="11"/>
+              <Slider Minimum="-100" Maximum="100" Value="{Binding CalibrationOffsetX}"/>
+              <TextBlock Text="{Binding CalibrationOffsetY, StringFormat='Vertical · {0:0} px'}" FontSize="11"/>
+              <Slider Minimum="-100" Maximum="100" Value="{Binding CalibrationOffsetY}"/>
+              <Button Content="Apply changes" Command="{Binding ApplySettingsCommand}" Classes="primary"/>
+              <Button Content="Apply calibration now" Command="{Binding ApplyCalibrationCommand}" Classes="subtle"/>
+              <TextBlock Text="Eye, crop, rotation and encoder quality are fixed when scrcpy starts; applying those requires restarting the video process. Calibration offset and theme apply live." FontSize="10" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
 
           <TextBlock Text="Audio is not included in this version." FontSize="11"
-                     Foreground="#A9A5B2" TextWrapping="Wrap" Margin="2,0,2,8"/>
+                     Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="2,0,2,8"/>
         </StackPanel>
       </ScrollViewer>
     </Grid>
