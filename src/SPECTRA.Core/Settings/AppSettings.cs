@@ -8,6 +8,10 @@ public sealed class AppSettings
     public int BitrateMbps { get; set; } = 8;
     public string VideoEye { get; set; } = "Left";
     public int RotationDegrees { get; set; }
+    public bool IsDarkTheme { get; set; } = true;
+    public double CalibrationOffsetX { get; set; }
+    public double CalibrationOffsetY { get; set; }
+    public bool IsAlwaysOnTop { get; set; }
     public string PairingEndpoint { get; set; } = string.Empty;
     public string DeviceEndpoint { get; set; } = string.Empty;
 
@@ -18,6 +22,8 @@ public sealed class AppSettings
         BitrateMbps = AllowedBitrates.Contains(BitrateMbps) ? BitrateMbps : 8;
         VideoEye = string.Equals(VideoEye, "Right", StringComparison.OrdinalIgnoreCase) ? "Right" : "Left";
         RotationDegrees = Math.Clamp(RotationDegrees, -180, 180);
+        CalibrationOffsetX = Math.Clamp(double.IsFinite(CalibrationOffsetX) ? CalibrationOffsetX : 0, -100, 100);
+        CalibrationOffsetY = Math.Clamp(double.IsFinite(CalibrationOffsetY) ? CalibrationOffsetY : 0, -100, 100);
         PairingEndpoint = NormalizeText(PairingEndpoint, 128);
         DeviceEndpoint = NormalizeText(DeviceEndpoint, 128);
         return this;
