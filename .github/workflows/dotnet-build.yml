@@ -342,18 +342,43 @@ jobs:
             jq -r '.name // .tag_name' "$temp/$tag/release.json" > "$temp/$tag/title.txt"
           done
 
-          # Recreate oldest to newest. GitHub's release page orders by creation time.
+          # Recreate oldest to newest so the newest published version appears first.
           # Tags and release/download/<tag>/<asset> URLs remain the same; asset IDs are regenerated.
+          # Retry transient GitHub API failures. If a create partially succeeds, the next
+          # attempt removes that partial release and uploads the complete saved asset set.
           for tag in "${tags[@]}"; do
             mapfile -d '' -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -print0 | sort -z)
             if (( ${#assets[@]} == 0 )); then
               echo "No assets available for $tag; refusing to recreate an empty release." >&2
               exit 1
             fi
-            gh release delete "$tag" --yes
             title="$(cat "$temp/$tag/title.txt")"
-            gh release create "$tag" "${assets[@]}" --title "$title" --notes-file "$temp/$tag/notes.md" --prerelease --verify-tag
+            created=false
+            for attempt in 1 2 3 4 5; do
+              gh release delete "$tag" --yes || true
+              if gh release create "$tag" "${assets[@]}" --title "$title" --notes-file "$temp/$tag/notes.md" --prerelease --verify-tag; then
+                created=true
+                break
+              fi
+              delay=$((attempt * 4))
+              echo "GitHub API failed while recreating $tag (attempt $attempt/5); retrying in $delay seconds." >&2
+              sleep "$delay"
+            done
+            if [[ "$created" != true ]]; then
+              echo "Failed to recreate $tag after 5 attempts." >&2
+              exit 1
+            fi
+            sleep 3
           done
 
-          echo "Recreated ${#tags[@]} pre-releases in ascending version order."
+          # gh release list is ordered by publication time. Publishing in ascending
+          # version order should therefore put the highest pre-release first.
+          expected_order="$(printf '%s\\n' "${tags[@]}" | tac | paste -sd, -)"
+          actual_order="$(gh release list --order desc --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | .tagName] | join(",")')"
+          if [[ "$actual_order" != "$expected_order" ]]; then
+            echo "Release order mismatch. Expected: $expected_order; actual: $actual_order" >&2
+            exit 1
+          fi
+
+          echo "Recreated and verified ${#tags[@]} pre-releases in ascending version order."
 
