@@ -134,7 +134,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right"
                             VerticalAlignment="Bottom" Margin="12" Panel.ZIndex="10">
                   <Button Content="▣" Width="38" Height="38" Padding="0"
-                          Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
+                          Background="#99000000" Foreground="#FFFFFF" CornerRadius="7"
                           ToolTip.Tip="Keep SPECTRA above other windows"
                           Click="OnAlwaysOnTopClick"/>
                   <Button Content="⛶" Width="38" Height="38" Padding="0"
