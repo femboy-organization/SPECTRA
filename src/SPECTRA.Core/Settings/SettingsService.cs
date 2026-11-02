@@ -64,6 +64,10 @@ public sealed class SettingsService
                 BitrateMbps = settings.BitrateMbps,
                 VideoEye = settings.VideoEye,
                 RotationDegrees = settings.RotationDegrees,
+                IsDarkTheme = settings.IsDarkTheme,
+                CalibrationOffsetX = settings.CalibrationOffsetX,
+                CalibrationOffsetY = settings.CalibrationOffsetY,
+                IsAlwaysOnTop = settings.IsAlwaysOnTop,
                 PairingEndpoint = settings.PairingEndpoint,
                 DeviceEndpoint = settings.DeviceEndpoint
             }.Normalize();
