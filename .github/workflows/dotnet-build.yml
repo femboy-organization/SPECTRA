@@ -368,13 +368,23 @@ jobs:
               echo "Failed to recreate $tag after 5 attempts." >&2
               exit 1
             fi
-            sleep 3
+            sleep 5
           done
 
           # gh release list is ordered by publication time. Publishing in ascending
           # version order should therefore put the highest pre-release first.
           expected_order="$(printf '%s\n' "${tags[@]}" | tac | paste -sd, -)"
-          actual_order="$(gh release list --order desc --limit 100 --json tagName | jq -r '[.[] | select(.tagName | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | .tagName] | join(",")')"
+          actual_order=""
+          for attempt in 1 2 3 4 5; do
+            if actual_order="$(gh release list --order desc --limit 100 --json tagName | jq -r '[.[] | select(.tagName | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | .tagName] | join(",")')"; then
+              break
+            fi
+            sleep $((attempt * 3))
+          done
+          if [[ -z "$actual_order" ]]; then
+            echo "Could not read the published release order after 5 attempts." >&2
+            exit 1
+          fi
           if [[ "$actual_order" != "$expected_order" ]]; then
             echo "Release order mismatch. Expected: $expected_order; actual: $actual_order" >&2
             exit 1
