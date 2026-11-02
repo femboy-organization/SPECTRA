@@ -18,7 +18,11 @@ public sealed class SettingsServiceTests
                 FramesPerSecond = 90,
                 BitrateMbps = 16,
                 PairingEndpoint = "192.168.1.23:37123",
-                DeviceEndpoint = "192.168.1.23:5555"
+                DeviceEndpoint = "192.168.1.23:5555",
+                IsDarkTheme = false,
+                IsAlwaysOnTop = true,
+                CalibrationOffsetX = 12.5,
+                CalibrationOffsetY = -8.5
             });
 
             var loaded = service.Load();
@@ -29,6 +33,10 @@ public sealed class SettingsServiceTests
             Assert.Equal(16, loaded.BitrateMbps);
             Assert.Equal("192.168.1.23:37123", loaded.PairingEndpoint);
             Assert.Equal("192.168.1.23:5555", loaded.DeviceEndpoint);
+            Assert.False(loaded.IsDarkTheme);
+            Assert.True(loaded.IsAlwaysOnTop);
+            Assert.Equal(12.5, loaded.CalibrationOffsetX);
+            Assert.Equal(-8.5, loaded.CalibrationOffsetY);
         }
         finally
         {
@@ -50,6 +58,10 @@ public sealed class SettingsServiceTests
             Assert.Equal(1920, loaded.Resolution);
             Assert.Equal(60, loaded.FramesPerSecond);
             Assert.Equal(8, loaded.BitrateMbps);
+            Assert.True(loaded.IsDarkTheme);
+            Assert.False(loaded.IsAlwaysOnTop);
+            Assert.Equal(0, loaded.CalibrationOffsetX);
+            Assert.Equal(0, loaded.CalibrationOffsetY);
         }
         finally
         {
