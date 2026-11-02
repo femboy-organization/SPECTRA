@@ -706,6 +706,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
               ?? Devices.FirstOrDefault(device => device.State == "device")
               ?? Devices.FirstOrDefault();
 
+        string? wirelessBootstrapTitle = null;
+        string? wirelessBootstrapMessage = null;
         var usbDevice = Devices.FirstOrDefault(device => device.State == "device" && !device.Serial.Contains(':'));
         var wifiAlreadyConnected = Devices.Any(device => device.Serial.Contains(':') && device.State == "device");
         var sameBootstrapDevice = string.Equals(_wirelessBootstrapAttemptedSerial, usbDevice?.Serial, StringComparison.Ordinal);
@@ -737,13 +739,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                         PersistSettings();
                     }
                 }
-                ActivityTitle = "Wireless connection ready";
-                ActivityMessage = wireless.Message + " You can now unplug USB; SPECTRA will keep the wireless ADB connection.";
+                wirelessBootstrapTitle = "Wireless connection ready";
+                wirelessBootstrapMessage = wireless.Message + " You can now unplug USB; SPECTRA will keep the wireless ADB connection.";
             }
             else
             {
-                ActivityTitle = "Automatic Wi-Fi discovery needs attention";
-                ActivityMessage = wireless.Message + " Keep USB connected; check Quest Wi-Fi and Developer settings.";
+                wirelessBootstrapTitle = "Automatic Wi-Fi discovery needs attention";
+                wirelessBootstrapMessage = wireless.Message + " Keep USB connected; check Quest Wi-Fi and Developer settings.";
             }
         }
 
@@ -753,8 +755,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
         if (!silent)
         {
-            ActivityTitle = result.Devices.Count == 0 ? "No headset detected" : "Device scan complete";
-            ActivityMessage = result.Message;
+            ActivityTitle = wirelessBootstrapTitle ?? (result.Devices.Count == 0 ? "No headset detected" : "Device scan complete");
+            ActivityMessage = wirelessBootstrapMessage ?? result.Message;
         }
     }
 
