@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SPECTRA.App.Platforms;
@@ -40,6 +41,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private double _rotationDegrees;
     private bool _isBusy;
     private bool _isStreaming;
+    private bool _isDarkTheme;
+    private bool _isAlwaysOnTop;
+    private bool _isAdvancedSettingsOpen;
+    private double _calibrationOffsetX;
+    private double _calibrationOffsetY;
 
     public MainViewModel(IVideoSurface videoSurface, SettingsService? settingsService = null)
     {
@@ -53,6 +59,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _selectedBitrateMbps = _settings.BitrateMbps;
         _selectedEye = _settings.VideoEye;
         _rotationDegrees = _settings.RotationDegrees;
+        _isDarkTheme = _settings.IsDarkTheme;
+        _isAlwaysOnTop = _settings.IsAlwaysOnTop;
+        _calibrationOffsetX = _settings.CalibrationOffsetX;
+        _calibrationOffsetY = _settings.CalibrationOffsetY;
         _pairingEndpoint = _settings.PairingEndpoint;
         _deviceEndpoint = _settings.DeviceEndpoint;
 
@@ -73,6 +83,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         ConnectWirelessCommand = new AsyncRelayCommand(ConnectWirelessAsync, () => CanChooseDevice);
         StartStreamingCommand = new AsyncRelayCommand(StartStreamingAsync, () => CanStartStream);
         StopStreamingCommand = new AsyncRelayCommand(StopStreamingAsync, () => CanStopStream);
+        ApplyCalibrationCommand = new RelayCommand(ApplyCalibration);
+        ToggleAdvancedSettingsCommand = new RelayCommand(() => IsAdvancedSettingsOpen = !IsAdvancedSettingsOpen);
     }
 
     public ObservableCollection<AdbDevice> Devices { get; }
@@ -86,6 +98,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public IAsyncRelayCommand ConnectWirelessCommand { get; }
     public IAsyncRelayCommand StartStreamingCommand { get; }
     public IAsyncRelayCommand StopStreamingCommand { get; }
+    public IRelayCommand ApplyCalibrationCommand { get; }
+    public IRelayCommand ToggleAdvancedSettingsCommand { get; }
 
     public AdbDevice? SelectedDevice
     {
@@ -249,6 +263,76 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public string RotationDescription => $"{(int)RotationDegrees}°";
 
+    public bool IsDarkTheme
+    {
+        get => _isDarkTheme;
+        set
+        {
+            if (SetProperty(ref _isDarkTheme, value))
+            {
+                _settings.IsDarkTheme = value;
+                if (Avalonia.Application.Current is { } app)
+                    app.RequestedThemeVariant = value ? ThemeVariant.Dark : ThemeVariant.Light;
+                PersistSettings();
+                AppLog.Info("Theme", value ? "Dark theme selected." : "Light theme selected.");
+            }
+        }
+    }
+
+    public bool IsAlwaysOnTop
+    {
+        get => _isAlwaysOnTop;
+        set
+        {
+            if (SetProperty(ref _isAlwaysOnTop, value))
+            {
+                _settings.IsAlwaysOnTop = value;
+                PersistSettings();
+            }
+        }
+    }
+
+    public bool IsAdvancedSettingsOpen
+    {
+        get => _isAdvancedSettingsOpen;
+        set => SetProperty(ref _isAdvancedSettingsOpen, value);
+    }
+
+    public double CalibrationOffsetX
+    {
+        get => _calibrationOffsetX;
+        set
+        {
+            var safe = Math.Clamp(double.IsFinite(value) ? value : 0, -100, 100);
+            if (SetProperty(ref _calibrationOffsetX, safe))
+            {
+                _settings.CalibrationOffsetX = safe;
+                PersistSettings();
+            }
+        }
+    }
+
+    public double CalibrationOffsetY
+    {
+        get => _calibrationOffsetY;
+        set
+        {
+            var safe = Math.Clamp(double.IsFinite(value) ? value : 0, -100, 100);
+            if (SetProperty(ref _calibrationOffsetY, safe))
+            {
+                _settings.CalibrationOffsetY = safe;
+                PersistSettings();
+            }
+        }
+    }
+
+    private void ApplyCalibration()
+    {
+        _videoSurface.SetCalibrationOffset(CalibrationOffsetX, CalibrationOffsetY);
+        ActivityTitle = "Calibration applied";
+        ActivityMessage = $"Preview offset: X {CalibrationOffsetX:0} px, Y {CalibrationOffsetY:0} px. Applied without restarting the stream.";
+    }
+
     public bool IsBusy
     {
         get => _isBusy;
@@ -306,6 +390,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            if (Avalonia.Application.Current is { } app)
+                app.RequestedThemeVariant = IsDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+            _videoSurface.SetCalibrationOffset(CalibrationOffsetX, CalibrationOffsetY);
             await RefreshDevicesAsync();
             _monitorTask ??= MonitorDevicesAsync(_lifetime.Token);
             AppLog.Info("Performance", $"View-model initialization completed in {stopwatch.ElapsedMilliseconds} ms.");
