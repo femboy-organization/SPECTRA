@@ -501,6 +501,42 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    private async Task ApplySettingsAsync()
+    {
+        if (!await _operationLock.WaitAsync(0, _lifetime.Token)) return;
+        try
+        {
+            if (!IsStreaming || string.IsNullOrWhiteSpace(_sessionSerial)) return;
+            IsBusy = true;
+            var serial = _sessionSerial;
+            ActivityTitle = "Applying stream settings";
+            ActivityMessage = "Restarting the scrcpy video process while retaining the ADB device connection.";
+            _videoSurface.SetCalibrationOffset(CalibrationOffsetX, CalibrationOffsetY);
+            var previous = _session;
+            _videoSurface.Detach();
+            _session = null;
+            if (previous is not null) await previous.StopAsync();
+            var replacement = await _streaming.StartAsync(serial, StreamingOptions.FromSettings(_settings), _lifetime.Token);
+            try { await _videoSurface.AttachAsync(replacement, _lifetime.Token); }
+            catch { await replacement.StopAsync(); throw; }
+            _session = replacement;
+            _sessionSerial = serial;
+            IsStreaming = true;
+            ConnectionSummary = serial.Contains(':') ? "Streaming over Wi-Fi" : "Streaming over USB";
+            ActivityTitle = "Settings applied";
+            ActivityMessage = "Stream settings applied. The video process restarted; the ADB connection was retained.";
+            AppLog.Info("Streaming", "Applied settings by restarting scrcpy only. device='" + serial + "'; pid=" + replacement.ProcessId + ".");
+        }
+        catch (Exception exception)
+        {
+            AppLog.Exception("Streaming", "Applying stream settings failed.", exception);
+            ActivityTitle = "Could not apply settings";
+            ActivityMessage = exception.Message;
+            if (_session is null) IsStreaming = false;
+        }
+        finally { IsBusy = false; _operationLock.Release(); }
+    }
+
     public async Task StopStreamingAsync()
     {
         if (!await _operationLock.WaitAsync(0, _lifetime.Token))
