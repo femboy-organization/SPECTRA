@@ -43,6 +43,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _isStreaming;
     private DateTimeOffset _lastWifiConnectAttempt = DateTimeOffset.MinValue;
     private string? _wirelessBootstrapAttemptedSerial;
+    private DateTimeOffset _lastUsbWifiBootstrapAttempt = DateTimeOffset.MinValue;
     private bool _isDarkTheme;
     private bool _isAlwaysOnTop;
     private bool _isAdvancedSettingsOpen;
@@ -706,10 +707,14 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
               ?? Devices.FirstOrDefault();
 
         var usbDevice = Devices.FirstOrDefault(device => device.State == "device" && !device.Serial.Contains(':'));
-        if (_settings.AutoConnectWifi && usbDevice is not null &&
-            !string.Equals(_wirelessBootstrapAttemptedSerial, usbDevice.Serial, StringComparison.Ordinal))
+        var wifiAlreadyConnected = Devices.Any(device => device.Serial.Contains(':') && device.State == "device");
+        var sameBootstrapDevice = string.Equals(_wirelessBootstrapAttemptedSerial, usbDevice?.Serial, StringComparison.Ordinal);
+        var bootstrapRetryDue = DateTimeOffset.UtcNow - _lastUsbWifiBootstrapAttempt >= TimeSpan.FromSeconds(30);
+        if (_settings.AutoConnectWifi && usbDevice is not null && !wifiAlreadyConnected &&
+            (!sameBootstrapDevice || bootstrapRetryDue))
         {
             _wirelessBootstrapAttemptedSerial = usbDevice.Serial;
+            _lastUsbWifiBootstrapAttempt = DateTimeOffset.UtcNow;
             ActivityTitle = "Discovering wireless headset";
             ActivityMessage = "USB detected. Enabling ADB over Wi-Fi and discovering the headset address…";
             AppLog.Info("ADB", "Starting automatic USB-to-Wi-Fi discovery for authorized USB device.");
