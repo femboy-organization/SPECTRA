@@ -27,6 +27,11 @@ public sealed class AppSettings
         RotationDegrees = Math.Clamp(RotationDegrees, -180, 180);
         LeftEyeRotationDegrees = Math.Clamp(LeftEyeRotationDegrees, -180, 180);
         RightEyeRotationDegrees = Math.Clamp(RightEyeRotationDegrees, -180, 180);
+        if (LeftEyeRotationDegrees == 22 && RightEyeRotationDegrees == -22)
+        {
+            LeftEyeRotationDegrees = 0;
+            RightEyeRotationDegrees = 0;
+        }
         CalibrationOffsetX = Math.Clamp(double.IsFinite(CalibrationOffsetX) ? CalibrationOffsetX : 0, -100, 100);
         CalibrationOffsetY = Math.Clamp(double.IsFinite(CalibrationOffsetY) ? CalibrationOffsetY : 0, -100, 100);
         PairingEndpoint = NormalizeText(PairingEndpoint, 128);
