@@ -725,22 +725,29 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             if (wireless.IsSuccess)
             {
                 var wirelessDevices = await _adb.ListDevicesAsync(cancellationToken);
+                AdbDevice? wirelessDevice = null;
                 if (wirelessDevices.IsAvailable)
                 {
                     foreach (var device in wirelessDevices.Devices.Where(d => d.Serial.Contains(':')))
                     {
                         if (!Devices.Any(existing => existing.Serial == device.Serial)) Devices.Add(device);
                     }
-                    var wirelessDevice = Devices.FirstOrDefault(device => device.Serial.Contains(':') && device.State == "device");
-                    if (wirelessDevice is not null)
-                    {
-                        _settings.DeviceEndpoint = wirelessDevice.Serial;
-                        if (!IsStreaming) SelectedDevice = wirelessDevice;
-                        PersistSettings();
-                    }
+                    wirelessDevice = Devices.FirstOrDefault(device => device.Serial.Contains(':') && device.State == "device");
                 }
-                wirelessBootstrapTitle = "Wireless connection ready";
-                wirelessBootstrapMessage = wireless.Message + " You can now unplug USB; SPECTRA will keep the wireless ADB connection.";
+
+                if (wirelessDevice is not null)
+                {
+                    _settings.DeviceEndpoint = wirelessDevice.Serial;
+                    if (!IsStreaming) SelectedDevice = wirelessDevice;
+                    PersistSettings();
+                    wirelessBootstrapTitle = "Wireless connection ready";
+                    wirelessBootstrapMessage = wireless.Message + " ADB confirmed the wireless device; you can now unplug USB.";
+                }
+                else
+                {
+                    wirelessBootstrapTitle = "Verifying wireless connection";
+                    wirelessBootstrapMessage = wireless.Message + " The connection command succeeded, but ADB has not listed the wireless device yet. Keep USB connected and refresh before unplugging.";
+                }
             }
             else
             {
