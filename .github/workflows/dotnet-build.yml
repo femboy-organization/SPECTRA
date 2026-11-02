@@ -292,3 +292,43 @@ jobs:
           echo "$release" | jq -e '[.assets[].name] | any(endswith("-win-x64.zip"))' >/dev/null
           echo "$release" | jq -e '[.assets[].name] | any(endswith("-Setup-win-x64.exe"))' >/dev/null
           echo "Verified pre-release $RELEASE_TAG with ZIP and installer assets."
+      
+      - name: Re-sort all pre-releases by semantic version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$(mktemp -d)"
+          trap 'rm -rf "$temp"' EXIT
+
+          mapfile -t tags < <(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select(.draft == false and (.tag_name | test("^v0\\.1\\.0-pre\\.[0-9]+$"))) | .tag_name] | sort_by(sub("^.*\\."; "") | tonumber) | .[]')
+          if (( ${#tags[@]} < 2 )); then
+            echo "Fewer than two pre-releases; no sorting needed."
+            exit 0
+          fi
+
+          # Download every release and save its metadata before changing anything.
+          for tag in "${tags[@]}"; do
+            mkdir -p "$temp/$tag/assets"
+            gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > "$temp/$tag/release.json"
+            gh release download "$tag" --dir "$temp/$tag/assets"
+            jq -r '.body // ""' "$temp/$tag/release.json" > "$temp/$tag/notes.md"
+            jq -r '.name // .tag_name' "$temp/$tag/release.json" > "$temp/$tag/title.txt"
+          done
+
+          # Recreate oldest to newest. GitHub's release page orders by creation time.
+          # Tags and release/download/<tag>/<asset> URLs remain the same; asset IDs are regenerated.
+          for tag in "${tags[@]}"; do
+            gh release delete "$tag" --yes
+            mapfile -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -printf '%p\\n' | sort)
+            if (( ${#assets[@]} == 0 )); then
+              echo "No assets downloaded for $tag; refusing to recreate an empty release." >&2
+              exit 1
+            fi
+            title="$(cat "$temp/$tag/title.txt")"
+            gh release create "$tag" "${assets[@]}" --title "$title" --notes-file "$temp/$tag/notes.md" --prerelease --verify-tag
+          done
+
+          echo "Recreated ${#tags[@]} pre-releases in ascending version order."
+
