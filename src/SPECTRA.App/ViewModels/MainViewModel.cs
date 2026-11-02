@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SPECTRA.App.Platforms;
@@ -41,6 +42,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _isBusy;
     private bool _isStreaming;
     private DateTimeOffset _lastWifiConnectAttempt = DateTimeOffset.MinValue;
+    private string? _wirelessBootstrapAttemptedSerial;
+    private DateTimeOffset _lastUsbWifiBootstrapAttempt = DateTimeOffset.MinValue;
+    private bool _isDarkTheme;
+    private bool _isAlwaysOnTop;
+    private bool _isAdvancedSettingsOpen;
+    private double _calibrationOffsetX;
+    private double _calibrationOffsetY;
 
     public MainViewModel(IVideoSurface videoSurface, SettingsService? settingsService = null)
     {
@@ -56,6 +64,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _rotationDegrees = _settings.VideoEye == "Right" ? _settings.RightEyeRotationDegrees : _settings.LeftEyeRotationDegrees;
         _pairingEndpoint = _settings.PairingEndpoint;
         _deviceEndpoint = _settings.DeviceEndpoint;
+        _isDarkTheme = _settings.IsDarkTheme;
+        _isAlwaysOnTop = _settings.IsAlwaysOnTop;
+        _calibrationOffsetX = _settings.CalibrationOffsetX;
+        _calibrationOffsetY = _settings.CalibrationOffsetY;
 
         AppLog.Info("Settings",
             $"Settings loaded. automaticQuality={_automaticQuality}; resolution={_selectedResolution}; " +
@@ -74,6 +86,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         ConnectWirelessCommand = new AsyncRelayCommand(ConnectWirelessAsync, () => CanChooseDevice);
         StartStreamingCommand = new AsyncRelayCommand(StartStreamingAsync, () => CanStartStream);
         StopStreamingCommand = new AsyncRelayCommand(StopStreamingAsync, () => CanStopStream);
+        ApplySettingsCommand = new AsyncRelayCommand(ApplySettingsAsync, () => IsStreaming && !IsBusy);
+        ApplyCalibrationCommand = new RelayCommand(ApplyCalibration);
+        ToggleAdvancedSettingsCommand = new RelayCommand(() => IsAdvancedSettingsOpen = !IsAdvancedSettingsOpen);
     }
 
     public ObservableCollection<AdbDevice> Devices { get; }
@@ -87,6 +102,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public IAsyncRelayCommand ConnectWirelessCommand { get; }
     public IAsyncRelayCommand StartStreamingCommand { get; }
     public IAsyncRelayCommand StopStreamingCommand { get; }
+    public IAsyncRelayCommand ApplySettingsCommand { get; }
+    public IRelayCommand ApplyCalibrationCommand { get; }
+    public IRelayCommand ToggleAdvancedSettingsCommand { get; }
 
     public AdbDevice? SelectedDevice
     {
@@ -268,6 +286,77 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public string RotationDescription => $"{(int)RotationDegrees}°";
 
+    public bool IsDarkTheme
+    {
+        get => _isDarkTheme;
+        set
+        {
+            if (SetProperty(ref _isDarkTheme, value))
+            {
+                _settings.IsDarkTheme = value;
+                if (Avalonia.Application.Current is { } app)
+                    app.RequestedThemeVariant = value ? ThemeVariant.Dark : ThemeVariant.Light;
+                PersistSettings();
+                AppLog.Info("Theme", value ? "Dark theme selected." : "Light theme selected.");
+            }
+        }
+    }
+
+    public bool IsAlwaysOnTop
+    {
+        get => _isAlwaysOnTop;
+        set
+        {
+            if (SetProperty(ref _isAlwaysOnTop, value))
+            {
+                _settings.IsAlwaysOnTop = value;
+                PersistSettings();
+            }
+        }
+    }
+
+    public bool IsAdvancedSettingsOpen
+    {
+        get => _isAdvancedSettingsOpen;
+        set => SetProperty(ref _isAdvancedSettingsOpen, value);
+    }
+
+    public double CalibrationOffsetX
+    {
+        get => _calibrationOffsetX;
+        set
+        {
+            var safe = Math.Clamp(double.IsFinite(value) ? value : 0, -100, 100);
+            if (SetProperty(ref _calibrationOffsetX, safe))
+            {
+                _settings.CalibrationOffsetX = safe;
+                PersistSettings();
+            }
+        }
+    }
+
+    public double CalibrationOffsetY
+    {
+        get => _calibrationOffsetY;
+        set
+        {
+            var safe = Math.Clamp(double.IsFinite(value) ? value : 0, -100, 100);
+            if (SetProperty(ref _calibrationOffsetY, safe))
+            {
+                _settings.CalibrationOffsetY = safe;
+                PersistSettings();
+            }
+        }
+    }
+
+    private void ApplyCalibration()
+    {
+        _videoSurface.SetCalibrationOffset(CalibrationOffsetX, CalibrationOffsetY);
+        ActivityTitle = "Calibration applied";
+        ActivityMessage = "Preview offset: X " + CalibrationOffsetX.ToString("0") + " px, Y " + CalibrationOffsetY.ToString("0") + " px. Applied without restarting the stream.";
+    }
+
+
     public bool IsBusy
     {
         get => _isBusy;
@@ -295,8 +384,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsDeviceAuthorized => SelectedDevice?.State == "device";
     public bool CanRefreshDevices => !IsBusy;
     public bool CanChooseDevice => !IsBusy && !IsStreaming;
-    public bool CanEditQuality => !IsBusy && !IsStreaming;
-    public bool CanEditVideo => !IsBusy && !IsStreaming;
+    public bool CanEditQuality => !IsBusy;
+    public bool CanEditVideo => !IsBusy;
     public bool CanEditQualityAndManualQuality => CanEditQuality && !IsAutomaticQuality;
     public double ManualQualityOpacity => IsAutomaticQuality ? 0.56 : 1.0;
     public IBrush ConnectionDotBrush => IsStreaming
@@ -325,6 +414,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            if (Avalonia.Application.Current is { } app)
+                app.RequestedThemeVariant = IsDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+            _videoSurface.SetCalibrationOffset(CalibrationOffsetX, CalibrationOffsetY);
             if (_settings.AutoConnectWifi && AdbService.IsValidEndpoint(DeviceEndpoint))
             {
                 _lastWifiConnectAttempt = DateTimeOffset.UtcNow;
@@ -501,6 +593,42 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    private async Task ApplySettingsAsync()
+    {
+        if (!await _operationLock.WaitAsync(0, _lifetime.Token)) return;
+        try
+        {
+            if (!IsStreaming || string.IsNullOrWhiteSpace(_sessionSerial)) return;
+            IsBusy = true;
+            var serial = _sessionSerial;
+            ActivityTitle = "Applying stream settings";
+            ActivityMessage = "Restarting the scrcpy video process while retaining the ADB device connection.";
+            _videoSurface.SetCalibrationOffset(CalibrationOffsetX, CalibrationOffsetY);
+            var previous = _session;
+            _videoSurface.Detach();
+            _session = null;
+            if (previous is not null) await previous.StopAsync();
+            var replacement = await _streaming.StartAsync(serial, StreamingOptions.FromSettings(_settings), _lifetime.Token);
+            try { await _videoSurface.AttachAsync(replacement, _lifetime.Token); }
+            catch { await replacement.StopAsync(); throw; }
+            _session = replacement;
+            _sessionSerial = serial;
+            IsStreaming = true;
+            ConnectionSummary = serial.Contains(':') ? "Streaming over Wi-Fi" : "Streaming over USB";
+            ActivityTitle = "Settings applied";
+            ActivityMessage = "Stream settings applied. The video process restarted; the ADB connection was retained.";
+            AppLog.Info("Streaming", "Applied settings by restarting scrcpy only. device='" + serial + "'; pid=" + replacement.ProcessId + ".");
+        }
+        catch (Exception exception)
+        {
+            AppLog.Exception("Streaming", "Applying stream settings failed.", exception);
+            ActivityTitle = "Could not apply settings";
+            ActivityMessage = exception.Message;
+            if (_session is null) IsStreaming = false;
+        }
+        finally { IsBusy = false; _operationLock.Release(); }
+    }
+
     public async Task StopStreamingAsync()
     {
         if (!await _operationLock.WaitAsync(0, _lifetime.Token))
@@ -578,14 +706,64 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
               ?? Devices.FirstOrDefault(device => device.State == "device")
               ?? Devices.FirstOrDefault();
 
+        string? wirelessBootstrapTitle = null;
+        string? wirelessBootstrapMessage = null;
+        var usbDevice = Devices.FirstOrDefault(device => device.State == "device" && !device.Serial.Contains(':'));
+        var wifiAlreadyConnected = Devices.Any(device => device.Serial.Contains(':') && device.State == "device");
+        var sameBootstrapDevice = string.Equals(_wirelessBootstrapAttemptedSerial, usbDevice?.Serial, StringComparison.Ordinal);
+        var bootstrapRetryDue = DateTimeOffset.UtcNow - _lastUsbWifiBootstrapAttempt >= TimeSpan.FromSeconds(30);
+        if (_settings.AutoConnectWifi && usbDevice is not null && !wifiAlreadyConnected &&
+            (!sameBootstrapDevice || bootstrapRetryDue))
+        {
+            _wirelessBootstrapAttemptedSerial = usbDevice.Serial;
+            _lastUsbWifiBootstrapAttempt = DateTimeOffset.UtcNow;
+            ActivityTitle = "Discovering wireless headset";
+            ActivityMessage = "USB detected. Enabling ADB over Wi-Fi and discovering the headset address…";
+            AppLog.Info("ADB", "Starting automatic USB-to-Wi-Fi discovery for authorized USB device.");
+            var wireless = await _adb.EnableUsbWifiAndConnectAsync(usbDevice.Serial, cancellationToken);
+            AppLog.Info("ADB", "Automatic USB-to-Wi-Fi discovery result: success=" + wireless.IsSuccess + "; message='" + wireless.Message + "'.");
+            if (wireless.IsSuccess)
+            {
+                var wirelessDevices = await _adb.ListDevicesAsync(cancellationToken);
+                AdbDevice? wirelessDevice = null;
+                if (wirelessDevices.IsAvailable)
+                {
+                    foreach (var device in wirelessDevices.Devices.Where(d => d.Serial.Contains(':')))
+                    {
+                        if (!Devices.Any(existing => existing.Serial == device.Serial)) Devices.Add(device);
+                    }
+                    wirelessDevice = Devices.FirstOrDefault(device => device.Serial.Contains(':') && device.State == "device");
+                }
+
+                if (wirelessDevice is not null)
+                {
+                    _settings.DeviceEndpoint = wirelessDevice.Serial;
+                    if (!IsStreaming) SelectedDevice = wirelessDevice;
+                    PersistSettings();
+                    wirelessBootstrapTitle = "Wireless connection ready";
+                    wirelessBootstrapMessage = wireless.Message + " ADB confirmed the wireless device; you can now unplug USB.";
+                }
+                else
+                {
+                    wirelessBootstrapTitle = "Verifying wireless connection";
+                    wirelessBootstrapMessage = wireless.Message + " The connection command succeeded, but ADB has not listed the wireless device yet. Keep USB connected and refresh before unplugging.";
+                }
+            }
+            else
+            {
+                wirelessBootstrapTitle = "Automatic Wi-Fi discovery needs attention";
+                wirelessBootstrapMessage = wireless.Message + " Keep USB connected; check Quest Wi-Fi and Developer settings.";
+            }
+        }
+
         if (SelectedDevice is null)
             ConnectionSummary = "No headset connected";
         UpdateConnectionSummary();
 
         if (!silent)
         {
-            ActivityTitle = result.Devices.Count == 0 ? "No headset detected" : "Device scan complete";
-            ActivityMessage = result.Message;
+            ActivityTitle = wirelessBootstrapTitle ?? (result.Devices.Count == 0 ? "No headset detected" : "Device scan complete");
+            ActivityMessage = wirelessBootstrapMessage ?? result.Message;
         }
     }
 
@@ -742,6 +920,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         ConnectWirelessCommand.NotifyCanExecuteChanged();
         StartStreamingCommand.NotifyCanExecuteChanged();
         StopStreamingCommand.NotifyCanExecuteChanged();
+        ApplySettingsCommand.NotifyCanExecuteChanged();
     }
 
     private void NotifyCommands()

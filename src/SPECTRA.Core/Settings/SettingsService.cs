@@ -67,6 +67,10 @@ public sealed class SettingsService
                 LeftEyeRotationDegrees = settings.LeftEyeRotationDegrees,
                 RightEyeRotationDegrees = settings.RightEyeRotationDegrees,
                 AutoConnectWifi = settings.AutoConnectWifi,
+                IsDarkTheme = settings.IsDarkTheme,
+                CalibrationOffsetX = settings.CalibrationOffsetX,
+                CalibrationOffsetY = settings.CalibrationOffsetY,
+                IsAlwaysOnTop = settings.IsAlwaysOnTop,
                 PairingEndpoint = settings.PairingEndpoint,
                 DeviceEndpoint = settings.DeviceEndpoint
             }.Normalize();

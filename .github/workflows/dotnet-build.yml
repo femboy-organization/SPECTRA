@@ -27,9 +27,12 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ) ]]; then
+          if [[ "$GITHUB_REF" == "refs/heads/main" && "$GITHUB_EVENT_NAME" == "push" && "$COMMIT_MESSAGE" == Rebuild\ pre.15* ]]; then
+            version="0.1.0-pre.15"
+          elif [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ) ]]; then
             current="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select(.tag_name | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | (.tag_name | capture("^v0\\.1\\.0-pre\\.(?<n>[0-9]+)$").n | tonumber)] | max // 0')"
             next=$((current + 1))
             version="0.1.0-pre.$next"
@@ -227,11 +230,24 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download verified packages
         uses: actions/download-artifact@v4
         with:
           name: spectra-windows-${{ needs.prepare.outputs.version }}
           path: artifacts
+
+      - name: Replace the incorrect pre.15 tag when explicitly rebuilding it
+        if: needs.prepare.outputs.version == '0.1.0-pre.15'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release delete "$RELEASE_TAG" --yes --cleanup-tag
+          fi
 
       - name: Publish GitHub Pre-release
         uses: softprops/action-gh-release@v2
@@ -253,9 +269,14 @@ jobs:
             - scrcpy video window hosted inside the main SPECTRA window.
             - Automatic and manual resolution / FPS / bitrate presets.
             - Selectable left/right eye with a flat 16:9 crop safely inside the circular lens field.
-            - Independent left/right eye alignment defaults (+22° / -22°), with separately persisted rotation controls.
+            - Independent left/right eye rotation defaults at 0°, with separately persisted rotation controls.
             - Adjustable preview rotation from -180° to +180° in 1° increments.
-            - Muted pastel dark theme enabled by default.
+            - Selectable original light theme and muted pastel dark theme (dark by default).
+            - Translucent lower-right preview overlay: fullscreen toggle (F / Escape) and always-on-top control.
+            - USB-first automatic Wi-Fi setup: enable ADB TCP, discover the Quest WLAN IP, connect wirelessly, then unplug USB.
+            - Manual Wireless debugging pairing and endpoint controls are hidden under Additional settings.
+            - Live X/Y preview calibration without reconnecting the headset.
+            - Editable stream settings while streaming; Apply changes restarts only the scrcpy video process and retains ADB connectivity.
             - Saved Wi-Fi ADB endpoint auto-connect on startup and automatic reconnect retries.
             - SDL3 vertical synchronization enabled for scrcpy rendering to reduce tearing.
             - Borderless 16:9 preview with no circular lens edge or square framing.
@@ -313,6 +334,10 @@ jobs:
             mkdir -p "$temp/$tag/assets"
             gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > "$temp/$tag/release.json"
             gh release download "$tag" --dir "$temp/$tag/assets"
+            if ! find "$temp/$tag/assets" -maxdepth 1 -type f -print -quit | grep -q .; then
+              echo "No assets downloaded for $tag; refusing to change any releases." >&2
+              exit 1
+            fi
             jq -r '.body // ""' "$temp/$tag/release.json" > "$temp/$tag/notes.md"
             jq -r '.name // .tag_name' "$temp/$tag/release.json" > "$temp/$tag/title.txt"
           done
@@ -320,12 +345,12 @@ jobs:
           # Recreate oldest to newest. GitHub's release page orders by creation time.
           # Tags and release/download/<tag>/<asset> URLs remain the same; asset IDs are regenerated.
           for tag in "${tags[@]}"; do
-            gh release delete "$tag" --yes
-            mapfile -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -printf '%p\\n' | sort)
+            mapfile -d '' -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -print0 | sort -z)
             if (( ${#assets[@]} == 0 )); then
-              echo "No assets downloaded for $tag; refusing to recreate an empty release." >&2
+              echo "No assets available for $tag; refusing to recreate an empty release." >&2
               exit 1
             fi
+            gh release delete "$tag" --yes
             title="$(cat "$temp/$tag/title.txt")"
             gh release create "$tag" "${assets[@]}" --title "$title" --notes-file "$temp/$tag/notes.md" --prerelease --verify-tag
           done
