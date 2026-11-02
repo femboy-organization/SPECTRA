@@ -2,7 +2,7 @@ name: SPECTRA Windows build and pre-release
 
 on:
   push:
-    branches: [main, "rewrite/**"]
+    branches: [main, "rewrite/**", "feature/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
