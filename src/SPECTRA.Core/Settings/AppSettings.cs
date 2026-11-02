@@ -7,10 +7,14 @@ public sealed class AppSettings
     public int FramesPerSecond { get; set; } = 60;
     public int BitrateMbps { get; set; } = 8;
     public string VideoEye { get; set; } = "Left";
-    public int RotationDegrees { get; set; } // Legacy setting retained for existing settings.json files.
-    public int LeftEyeRotationDegrees { get; set; } = 22;
-    public int RightEyeRotationDegrees { get; set; } = -22;
+    public int RotationDegrees { get; set; }
+    public int LeftEyeRotationDegrees { get; set; }
+    public int RightEyeRotationDegrees { get; set; }
     public bool AutoConnectWifi { get; set; } = true;
+    public bool IsDarkTheme { get; set; } = true;
+    public double CalibrationOffsetX { get; set; }
+    public double CalibrationOffsetY { get; set; }
+    public bool IsAlwaysOnTop { get; set; }
     public string PairingEndpoint { get; set; } = string.Empty;
     public string DeviceEndpoint { get; set; } = string.Empty;
 
@@ -23,6 +27,8 @@ public sealed class AppSettings
         RotationDegrees = Math.Clamp(RotationDegrees, -180, 180);
         LeftEyeRotationDegrees = Math.Clamp(LeftEyeRotationDegrees, -180, 180);
         RightEyeRotationDegrees = Math.Clamp(RightEyeRotationDegrees, -180, 180);
+        CalibrationOffsetX = Math.Clamp(double.IsFinite(CalibrationOffsetX) ? CalibrationOffsetX : 0, -100, 100);
+        CalibrationOffsetY = Math.Clamp(double.IsFinite(CalibrationOffsetY) ? CalibrationOffsetY : 0, -100, 100);
         PairingEndpoint = NormalizeText(PairingEndpoint, 128);
         DeviceEndpoint = NormalizeText(DeviceEndpoint, 128);
         return this;
