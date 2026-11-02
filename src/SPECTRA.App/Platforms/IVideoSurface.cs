@@ -6,4 +6,5 @@ public interface IVideoSurface
 {
     Task AttachAsync(ScrcpySession session, CancellationToken cancellationToken);
     void Detach();
+    void SetCalibrationOffset(double x, double y);
 }
