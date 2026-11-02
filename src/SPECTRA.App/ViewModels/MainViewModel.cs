@@ -40,6 +40,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private double _rotationDegrees;
     private bool _isBusy;
     private bool _isStreaming;
+    private DateTimeOffset _lastWifiConnectAttempt = DateTimeOffset.MinValue;
 
     public MainViewModel(IVideoSurface videoSurface, SettingsService? settingsService = null)
     {
@@ -52,7 +53,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _selectedFps = _settings.FramesPerSecond;
         _selectedBitrateMbps = _settings.BitrateMbps;
         _selectedEye = _settings.VideoEye;
-        _rotationDegrees = _settings.RotationDegrees;
+        _rotationDegrees = _settings.VideoEye == "Right" ? _settings.RightEyeRotationDegrees : _settings.LeftEyeRotationDegrees;
         _pairingEndpoint = _settings.PairingEndpoint;
         _deviceEndpoint = _settings.DeviceEndpoint;
 
@@ -121,6 +122,19 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         get => _activityMessage;
         private set => SetProperty(ref _activityMessage, value);
+    }
+
+    public bool AutoConnectWifi
+    {
+        get => _settings.AutoConnectWifi;
+        set
+        {
+            if (_settings.AutoConnectWifi == value) return;
+            _settings.AutoConnectWifi = value;
+            OnPropertyChanged();
+            PersistSettings();
+            AppLog.Info("Settings", "Wi-Fi auto-connect set to " + value + ".");
+        }
     }
 
     public string PairingEndpoint
@@ -225,8 +239,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             if (SetProperty(ref _selectedEye, safe))
             {
                 _settings.VideoEye = safe;
+                var eyeRotation = safe == "Right" ? _settings.RightEyeRotationDegrees : _settings.LeftEyeRotationDegrees;
+                if (SetProperty(ref _rotationDegrees, eyeRotation, nameof(RotationDegrees)))
+                    OnPropertyChanged(nameof(RotationDescription));
                 PersistSettings();
-                AppLog.Info("Settings", $"Preview eye selection changed to {safe}.");
+                AppLog.Info("Settings", "Preview eye selection changed to " + safe + "; rotation=" + eyeRotation + " degrees.");
             }
         }
     }
@@ -239,6 +256,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             var safe = Math.Clamp(Math.Round(value), -180d, 180d);
             if (SetProperty(ref _rotationDegrees, safe))
             {
+                if (_selectedEye == "Right") _settings.RightEyeRotationDegrees = (int)safe;
+                else _settings.LeftEyeRotationDegrees = (int)safe;
                 _settings.RotationDegrees = (int)safe;
                 OnPropertyChanged(nameof(RotationDescription));
                 PersistSettings();
@@ -306,6 +325,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            if (_settings.AutoConnectWifi && AdbService.IsValidEndpoint(DeviceEndpoint))
+            {
+                _lastWifiConnectAttempt = DateTimeOffset.UtcNow;
+                AppLog.Info("ADB", "Attempting saved Wi-Fi endpoint on startup: " + DeviceEndpoint + ".");
+                var connect = await _adb.ConnectAsync(DeviceEndpoint, _lifetime.Token);
+                AppLog.Info("ADB", "Startup Wi-Fi auto-connect result: success=" + connect.IsSuccess + "; message='" + connect.Message + "'.");
+            }
             await RefreshDevicesAsync();
             _monitorTask ??= MonitorDevicesAsync(_lifetime.Token);
             AppLog.Info("Performance", $"View-model initialization completed in {stopwatch.ElapsedMilliseconds} ms.");
@@ -598,6 +624,22 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                         }
 
                         await RefreshDevicesCoreAsync(silent: true, cancellationToken);
+
+                        var wifiAlreadyConnected = Devices.Any(device =>
+                            string.Equals(device.Serial, DeviceEndpoint, StringComparison.OrdinalIgnoreCase) &&
+                            device.State == "device");
+                        if (_settings.AutoConnectWifi &&
+                            AdbService.IsValidEndpoint(DeviceEndpoint) &&
+                            !wifiAlreadyConnected &&
+                            DateTimeOffset.UtcNow - _lastWifiConnectAttempt >= TimeSpan.FromSeconds(10))
+                        {
+                            _lastWifiConnectAttempt = DateTimeOffset.UtcNow;
+                            AppLog.Info("DeviceMonitor", "Retrying saved Wi-Fi connection to " + DeviceEndpoint + ".");
+                            var reconnect = await _adb.ConnectAsync(DeviceEndpoint, cancellationToken);
+                            AppLog.Debug("DeviceMonitor", "Wi-Fi reconnect result: success=" + reconnect.IsSuccess + "; message='" + reconnect.Message + "'.");
+                            if (reconnect.IsSuccess)
+                                await RefreshDevicesCoreAsync(silent: true, cancellationToken);
+                        }
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
