@@ -64,6 +64,9 @@ public sealed class SettingsService
                 BitrateMbps = settings.BitrateMbps,
                 VideoEye = settings.VideoEye,
                 RotationDegrees = settings.RotationDegrees,
+                LeftEyeRotationDegrees = settings.LeftEyeRotationDegrees,
+                RightEyeRotationDegrees = settings.RightEyeRotationDegrees,
+                AutoConnectWifi = settings.AutoConnectWifi,
                 PairingEndpoint = settings.PairingEndpoint,
                 DeviceEndpoint = settings.DeviceEndpoint
             }.Normalize();
