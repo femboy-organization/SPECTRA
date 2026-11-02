@@ -88,3 +88,11 @@ The selected eye is cropped to a centered 16:9 rectangle that remains inside the
 circular lens viewport. The desktop preview host uses the same 16:9 aspect ratio,
 so the image is neither square nor stretched and the circular lens boundary is
 not included in the video frame.
+
+
+## Display and connection defaults
+
+- The application opens with a dark, muted pastel theme.
+- Saved ADB-over-Wi-Fi device endpoints reconnect automatically at startup and are retried while the app is open. Pairing still requires the one-time pairing step in Quest Wireless debugging.
+- Left-eye rotation defaults to +22° and right-eye rotation defaults to −22°. Each eye keeps its own saved rotation.
+- scrcpy's SDL3 renderer is launched with vertical synchronization enabled to reduce tearing.
