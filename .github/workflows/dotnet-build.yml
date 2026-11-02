@@ -255,7 +255,11 @@ jobs:
             - Selectable left/right eye with a flat 16:9 crop safely inside the circular lens field.
             - Adjustable preview rotation from -180° to +180° in 1° increments.
             - Borderless 16:9 preview with no circular lens edge or square framing.
-            - Fullscreen mode with Escape to exit.
+            - Fullscreen overlay button and F shortcut, plus always-on-top preview control.
+            - Switchable original light and muted pastel dark themes.
+            - Hidden advanced wireless setup with USB-first ADB TCP Wi-Fi discovery.
+            - Live X/Y preview calibration offsets without restarting the device connection.
+            - Stream quality, eye and rotation remain editable while streaming; scrcpy process-start parameters apply on the next stream.
             - Self-contained Windows installer and portable ZIP.
             - Application runtime files and DLLs are stored under `bin`; the root `SPECTRA.exe` launches the app from there.
             - The release pipeline smoke-tests the exact packaged launcher and requires a real application startup log before publishing.
