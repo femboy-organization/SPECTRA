@@ -240,7 +240,7 @@
               </StackPanel>
               <StackPanel Spacing="3">
                 <TextBlock Text="Stream quality" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="You can change these settings while streaming; they take effect on the next stream."
+                <TextBlock Text="You can edit settings while streaming. Select Apply changes to restart only the video process; the ADB connection stays active."
                            FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
               </StackPanel>
               <CheckBox Content="Automatic quality (recommended)"
@@ -263,7 +263,7 @@
             <StackPanel Spacing="11">
               <StackPanel Spacing="3">
                 <TextBlock Text="Video framing" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="Show one lens only. Changes apply to the next stream."
+                <TextBlock Text="Show one lens only. Edit while streaming, then select Apply changes."
                            FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
               </StackPanel>
               <TextBlock Text="Eye" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
