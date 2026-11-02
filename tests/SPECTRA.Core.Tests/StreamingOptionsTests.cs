@@ -15,7 +15,7 @@ public sealed class StreamingOptionsTests
         Assert.Equal(60, options.FramesPerSecond);
         Assert.Equal(8, options.BitrateMbps);
         Assert.Equal("Left", options.VideoEye);
-        Assert.Equal(0, options.RotationDegrees);
+        Assert.Equal(22, options.RotationDegrees);
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public sealed class StreamingOptionsTests
             FramesPerSecond = 72,
             BitrateMbps = 12,
             VideoEye = "Right",
-            RotationDegrees = -37
+            RightEyeRotationDegrees = -37
         });
 
         Assert.False(options.IsAutomatic);
