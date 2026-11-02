@@ -323,80 +323,11 @@ jobs:
           set -euo pipefail
           temp="$(mktemp -d)"
           trap 'rm -rf "$temp"' EXIT
-
-          # pre.7 was missing after an earlier GitHub API 500 interrupted its recreation.
-          # Restore it from the original, still-retained Actions build artifact before sorting.
+          
+          # Restore pre.7 from its original, still-retained Actions artifact.
           missing_tag="v0.1.0-pre.7"
-          release_state="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$missing_tag" --jq '[.draft, (.assets | length)] | @tsv' 2>/dev/null || echo missing)"
-          if [[ "$release_state" !=           if (( ${#tags[@]} < 2 )); then
-            echo "Fewer than two pre-releases; no sorting needed."
-            exit 0
-          fi
-
-          # Download every release and save its metadata before changing anything.
-          for tag in "${tags[@]}"; do
-            mkdir -p "$temp/$tag/assets"
-            gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > "$temp/$tag/release.json"
-            gh release download "$tag" --dir "$temp/$tag/assets"
-            if ! find "$temp/$tag/assets" -maxdepth 1 -type f -print -quit | grep -q .; then
-              echo "No assets downloaded for $tag; refusing to change any releases." >&2
-              exit 1
-            fi
-            jq -r '.body // ""' "$temp/$tag/release.json" > "$temp/$tag/notes.md"
-            jq -r '.name // .tag_name' "$temp/$tag/release.json" > "$temp/$tag/title.txt"
-          done
-
-          # Recreate oldest to newest so the newest published version appears first.
-          # Tags and release/download/<tag>/<asset> URLs remain the same; asset IDs are regenerated.
-          # Retry transient GitHub API failures. If a create partially succeeds, the next
-          # attempt removes that partial release and uploads the complete saved asset set.
-          for tag in "${tags[@]}"; do
-            mapfile -d '' -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -print0 | sort -z)
-            if (( ${#assets[@]} == 0 )); then
-              echo "No assets available for $tag; refusing to recreate an empty release." >&2
-              exit 1
-            fi
-            title="$(cat "$temp/$tag/title.txt")"
-            created=false
-            for attempt in 1 2 3 4 5; do
-              gh release delete "$tag" --yes || true
-              if gh release create "$tag" "${assets[@]}" --title "$title" --notes-file "$temp/$tag/notes.md" --prerelease --verify-tag; then
-                created=true
-                break
-              fi
-              delay=$((attempt * 4))
-              echo "GitHub API failed while recreating $tag (attempt $attempt/5); retrying in $delay seconds." >&2
-              sleep "$delay"
-            done
-            if [[ "$created" != true ]]; then
-              echo "Failed to recreate $tag after 5 attempts." >&2
-              exit 1
-            fi
-            sleep 5
-          done
-
-          # gh release list is ordered by publication time. Publishing in ascending
-          # version order should therefore put the highest pre-release first.
-          expected_order="$(printf '%s\n' "${tags[@]}" | tac | paste -sd, -)"
-          actual_order=""
-          for attempt in 1 2 3 4 5; do
-            if actual_order="$(gh release list --order desc --limit 100 --json tagName | jq -r '[.[] | select(.tagName | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | .tagName] | join(",")')"; then
-              break
-            fi
-            sleep $((attempt * 3))
-          done
-          if [[ -z "$actual_order" ]]; then
-            echo "Could not read the published release order after 5 attempts." >&2
-            exit 1
-          fi
-          if [[ "$actual_order" != "$expected_order" ]]; then
-            echo "Release order mismatch. Expected: $expected_order; actual: $actual_order" >&2
-            exit 1
-          fi
-
-          echo "Recreated and verified ${#tags[@]} pre-releases in ascending version order."
-
-false\\t4' ]]; then
+          release_state="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$missing_tag" --jq '(.draft | tostring) + ":" + (.assets | length | tostring)' 2>/dev/null || echo missing)"
+          if [[ "$release_state" != "false:4" ]]; then
             restore_dir="$temp/$missing_tag/assets"
             mkdir -p "$restore_dir"
             downloaded=false
@@ -412,7 +343,6 @@ false\\t4' ]]; then
               echo "Could not restore the original pre.7 build artifact." >&2
               exit 1
             fi
-
             mapfile -d '' -t restored_assets < <(find "$restore_dir" -maxdepth 1 -type f -print0 | sort -z)
             if (( ${#restored_assets[@]} != 4 )); then
               echo "Expected 4 original pre.7 assets, found ${#restored_assets[@]}." >&2
@@ -420,9 +350,9 @@ false\\t4' ]]; then
             fi
             cat > "$temp/$missing_tag/notes.md" <<'PRE7_NOTES'
           ## SPECTRA v0.1.0-pre.7
-
+          
           Windows x64 pre-release of the C# / Avalonia rewrite.
-
+          
           ### Included
           - USB ADB device discovery and connection status.
           - ADB Wireless debugging pairing and connection.
@@ -433,16 +363,15 @@ false\\t4' ]]; then
           - Application runtime files and DLLs are stored under `bin`; the root `SPECTRA.exe` launches the app from there.
           - The release pipeline smoke-tests the exact packaged launcher and requires a real application startup log before publishing.
           - Diagnostic logs capture application events, unhandled exceptions and performance timings.
-
+          
           ### Diagnostics
           - Log files are written to `%LOCALAPPDATA%\SPECTRA\Logs\`; launcher logging also falls back to `%TEMP%\SPECTRA\Logs\` and a local `logs` folder.
           - Wireless pairing codes are not written to the logs.
-
+          
           ### Notes
           - Audio is not included.
           - Real headset USB/Wi-Fi streaming and native window embedding still require verification on physical Meta Quest hardware.
           PRE7_NOTES
-
             restored=false
             for attempt in 1 2 3 4 5; do
               gh release delete "$missing_tag" --yes || true
@@ -458,20 +387,21 @@ false\\t4' ]]; then
             fi
             sleep 5
           fi
-
+          
           mapfile -t tags < <(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select(.draft == false and (.tag_name | test("^v0\\.1\\.0-pre\\.[0-9]+$"))) | .tag_name] | sort_by(sub("^.*\\."; "") | tonumber) | .[]')
           for version in {1..15}; do
             expected_tag="v0.1.0-pre.$version"
-            if ! printf '%s\\n' "${tags[@]}" | grep -Fxq "$expected_tag"; then
+            if ! printf '%s\n' "${tags[@]}" | grep -Fxq "$expected_tag"; then
               echo "Missing pre-release $expected_tag after restoration." >&2
               exit 1
             fi
           done
+          
           if (( ${#tags[@]} < 2 )); then
             echo "Fewer than two pre-releases; no sorting needed."
             exit 0
           fi
-
+          
           # Download every release and save its metadata before changing anything.
           for tag in "${tags[@]}"; do
             mkdir -p "$temp/$tag/assets"
@@ -484,7 +414,7 @@ false\\t4' ]]; then
             jq -r '.body // ""' "$temp/$tag/release.json" > "$temp/$tag/notes.md"
             jq -r '.name // .tag_name' "$temp/$tag/release.json" > "$temp/$tag/title.txt"
           done
-
+          
           # Recreate oldest to newest so the newest published version appears first.
           # Tags and release/download/<tag>/<asset> URLs remain the same; asset IDs are regenerated.
           # Retry transient GitHub API failures. If a create partially succeeds, the next
@@ -513,7 +443,7 @@ false\\t4' ]]; then
             fi
             sleep 5
           done
-
+          
           # gh release list is ordered by publication time. Publishing in ascending
           # version order should therefore put the highest pre-release first.
           expected_order="$(printf '%s\n' "${tags[@]}" | tac | paste -sd, -)"
@@ -532,6 +462,5 @@ false\\t4' ]]; then
             echo "Release order mismatch. Expected: $expected_order; actual: $actual_order" >&2
             exit 1
           fi
-
+          
           echo "Recreated and verified ${#tags[@]} pre-releases in ascending version order."
-
