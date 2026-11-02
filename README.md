@@ -88,3 +88,14 @@ The selected eye is cropped to a centered 16:9 rectangle that remains inside the
 circular lens viewport. The desktop preview host uses the same 16:9 aspect ratio,
 so the image is neither square nor stretched and the circular lens boundary is
 not included in the video frame.
+
+
+## Desktop controls and calibration
+
+- Switch between the original light palette and the muted pastel dark palette; the dark palette is the default.
+- The preview has compact overlay controls for fullscreen (button or `F`) and always-on-top.
+- Advanced wireless debugging fields are hidden behind **Additional settings**.
+- On first authorized USB detection, SPECTRA attempts to enable ADB TCP mode, reads the Quest WLAN IPv4 address, and connects to port 5555. Keep the PC and headset on the same Wi-Fi network. This legacy ADB TCP workflow depends on the headset firmware allowing `adb tcpip`; modern Wireless debugging pairing remains available in Additional settings as a fallback.
+- Horizontal and vertical preview calibration offsets can be adjusted and applied live without restarting the ADB device connection or scrcpy process.
+- The app stores theme, topmost, and calibration preferences between launches.
+- Stream eye/crop, rotation, resolution, FPS, and bitrate remain editable while streaming, but scrcpy v5 treats these as process-start parameters. Changes are saved for the next stream; changing them live requires a future custom video pipeline or a video-process restart. The ADB connection itself is not dropped.
