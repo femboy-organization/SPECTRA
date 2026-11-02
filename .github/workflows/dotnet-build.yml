@@ -227,6 +227,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download verified packages
         uses: actions/download-artifact@v4
         with:
@@ -313,6 +315,10 @@ jobs:
             mkdir -p "$temp/$tag/assets"
             gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > "$temp/$tag/release.json"
             gh release download "$tag" --dir "$temp/$tag/assets"
+            if ! find "$temp/$tag/assets" -maxdepth 1 -type f -print -quit | grep -q .; then
+              echo "No assets downloaded for $tag; refusing to change any releases." >&2
+              exit 1
+            fi
             jq -r '.body // ""' "$temp/$tag/release.json" > "$temp/$tag/notes.md"
             jq -r '.name // .tag_name' "$temp/$tag/release.json" > "$temp/$tag/title.txt"
           done
@@ -320,12 +326,12 @@ jobs:
           # Recreate oldest to newest. GitHub's release page orders by creation time.
           # Tags and release/download/<tag>/<asset> URLs remain the same; asset IDs are regenerated.
           for tag in "${tags[@]}"; do
-            gh release delete "$tag" --yes
-            mapfile -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -printf '%p\\n' | sort)
+            mapfile -d '' -t assets < <(find "$temp/$tag/assets" -maxdepth 1 -type f -print0 | sort -z)
             if (( ${#assets[@]} == 0 )); then
-              echo "No assets downloaded for $tag; refusing to recreate an empty release." >&2
+              echo "No assets available for $tag; refusing to recreate an empty release." >&2
               exit 1
             fi
+            gh release delete "$tag" --yes
             title="$(cat "$temp/$tag/title.txt")"
             gh release create "$tag" "${assets[@]}" --title "$title" --notes-file "$temp/$tag/notes.md" --prerelease --verify-tag
           done
