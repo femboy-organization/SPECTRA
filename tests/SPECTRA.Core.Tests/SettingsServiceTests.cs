@@ -18,7 +18,10 @@ public sealed class SettingsServiceTests
                 FramesPerSecond = 90,
                 BitrateMbps = 16,
                 PairingEndpoint = "192.168.1.23:37123",
-                DeviceEndpoint = "192.168.1.23:5555"
+                DeviceEndpoint = "192.168.1.23:5555",
+                LeftEyeRotationDegrees = 22,
+                RightEyeRotationDegrees = -22,
+                AutoConnectWifi = true
             });
 
             var loaded = service.Load();
@@ -29,6 +32,9 @@ public sealed class SettingsServiceTests
             Assert.Equal(16, loaded.BitrateMbps);
             Assert.Equal("192.168.1.23:37123", loaded.PairingEndpoint);
             Assert.Equal("192.168.1.23:5555", loaded.DeviceEndpoint);
+            Assert.Equal(22, loaded.LeftEyeRotationDegrees);
+            Assert.Equal(-22, loaded.RightEyeRotationDegrees);
+            Assert.True(loaded.AutoConnectWifi);
         }
         finally
         {
@@ -50,6 +56,9 @@ public sealed class SettingsServiceTests
             Assert.Equal(1920, loaded.Resolution);
             Assert.Equal(60, loaded.FramesPerSecond);
             Assert.Equal(8, loaded.BitrateMbps);
+            Assert.Equal(22, loaded.LeftEyeRotationDegrees);
+            Assert.Equal(-22, loaded.RightEyeRotationDegrees);
+            Assert.True(loaded.AutoConnectWifi);
         }
         finally
         {
