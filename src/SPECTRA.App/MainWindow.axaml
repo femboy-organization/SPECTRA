@@ -14,21 +14,21 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="WindowBg" Color="{DynamicResource WindowBg}"/>
-          <SolidColorBrush x:Key="SurfaceBg" Color="{DynamicResource SurfaceBg}"/>
-          <SolidColorBrush x:Key="SurfaceAlt" Color="{DynamicResource SurfaceAlt}"/>
-          <SolidColorBrush x:Key="TextMain" Color="{DynamicResource TextMain}"/>
-          <SolidColorBrush x:Key="TextMuted" Color="{DynamicResource TextMuted}"/>
-          <SolidColorBrush x:Key="BorderSoft" Color="{DynamicResource BorderSoft}"/>
-          <SolidColorBrush x:Key="ControlBg" Color="{DynamicResource SurfaceBg}"/>
-          <SolidColorBrush x:Key="ControlBorder" Color="{DynamicResource ControlBorder}"/>
-          <SolidColorBrush x:Key="ButtonBg" Color="{DynamicResource ButtonBg}"/>
-          <SolidColorBrush x:Key="ButtonText" Color="{DynamicResource TextMain}"/>
-          <SolidColorBrush x:Key="AccentBg" Color="{DynamicResource AccentBg}"/>
-          <SolidColorBrush x:Key="AccentText" Color="{DynamicResource SurfaceBg}"/>
-          <SolidColorBrush x:Key="DangerBg" Color="{DynamicResource DangerBg}"/>
-          <SolidColorBrush x:Key="DangerText" Color="{DynamicResource DangerText}"/>
-          <SolidColorBrush x:Key="PillBg" Color="{DynamicResource PillBg}"/>
+          <SolidColorBrush x:Key="WindowBg" Color="#F7F4EE"/>
+          <SolidColorBrush x:Key="SurfaceBg" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#F0ECE5"/>
+          <SolidColorBrush x:Key="TextMain" Color="#302C29"/>
+          <SolidColorBrush x:Key="TextMuted" Color="#77716A"/>
+          <SolidColorBrush x:Key="BorderSoft" Color="#E9E2D9"/>
+          <SolidColorBrush x:Key="ControlBg" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="ControlBorder" Color="#E4DCD1"/>
+          <SolidColorBrush x:Key="ButtonBg" Color="#E8D8CB"/>
+          <SolidColorBrush x:Key="ButtonText" Color="#4F4A45"/>
+          <SolidColorBrush x:Key="AccentBg" Color="#6F7663"/>
+          <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="DangerBg" Color="#F2DEDA"/>
+          <SolidColorBrush x:Key="DangerText" Color="#843E34"/>
+          <SolidColorBrush x:Key="PillBg" Color="#E9DAD0"/>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="WindowBg" Color="#20212A"/>
@@ -42,7 +42,7 @@
           <SolidColorBrush x:Key="ButtonBg" Color="#45414F"/>
           <SolidColorBrush x:Key="ButtonText" Color="#E8E3EA"/>
           <SolidColorBrush x:Key="AccentBg" Color="#777A67"/>
-          <SolidColorBrush x:Key="AccentText" Color="{DynamicResource SurfaceBg}"/>
+          <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
           <SolidColorBrush x:Key="DangerBg" Color="#594047"/>
           <SolidColorBrush x:Key="DangerText" Color="#E6B8B5"/>
           <SolidColorBrush x:Key="PillBg" Color="#48404F"/>
@@ -240,7 +240,7 @@
               </StackPanel>
               <StackPanel Spacing="3">
                 <TextBlock Text="Stream quality" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="Changes apply to the next stream. Stop streaming to edit quality."
+                <TextBlock Text="You can change these settings while streaming; they take effect on the next stream."
                            FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
               </StackPanel>
               <CheckBox Content="Automatic quality (recommended)"
