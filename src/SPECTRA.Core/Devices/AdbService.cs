@@ -111,13 +111,13 @@ public sealed class AdbService
         var address = await _runner.RunAsync(_tools.AdbPath,
             ["-s", usbSerial, "shell", "ip", "-f", "inet", "addr", "show", "wlan0"],
             TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
-        var match = Regex.Match(address.StandardOutput, @"\\binet\\s+(?<ip>(?:[0-9]{1,3}\\.){3}[0-9]{1,3})/");
+        var match = Regex.Match(address.StandardOutput, @"\binet\s+(?<ip>(?:[0-9]{1,3}\.){3}[0-9]{1,3})/");
         if (!match.Success)
         {
             var route = await _runner.RunAsync(_tools.AdbPath,
                 ["-s", usbSerial, "shell", "ip", "route", "get", "1.1.1.1"],
                 TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
-            match = Regex.Match(route.StandardOutput, @"\\bsrc\\s+(?<ip>(?:[0-9]{1,3}\\.){3}[0-9]{1,3})");
+            match = Regex.Match(route.StandardOutput, @"\bsrc\s+(?<ip>(?:[0-9]{1,3}\.){3}[0-9]{1,3})");
         }
 
         if (!match.Success)
