@@ -41,6 +41,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private double _rotationDegrees;
     private bool _isBusy;
     private bool _isStreaming;
+    private string? _wirelessBootstrapAttemptedSerial;
     private bool _isDarkTheme;
     private bool _isAlwaysOnTop;
     private bool _isAdvancedSettingsOpen;
@@ -638,6 +639,43 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             : Devices.FirstOrDefault(device => device.Serial == previousSerial)
               ?? Devices.FirstOrDefault(device => device.State == "device")
               ?? Devices.FirstOrDefault();
+
+        var usbDevice = Devices.FirstOrDefault(device =>
+            device.State == "device" && !device.Serial.Contains(':'));
+        if (usbDevice is not null &&
+            !string.Equals(_wirelessBootstrapAttemptedSerial, usbDevice.Serial, StringComparison.Ordinal))
+        {
+            _wirelessBootstrapAttemptedSerial = usbDevice.Serial;
+            ActivityTitle = "Discovering wireless headset";
+            ActivityMessage = "USB detected. Enabling ADB over Wi-Fi and discovering the headset address…";
+            AppLog.Info("ADB", "Starting automatic USB-to-Wi-Fi discovery for authorized USB device.");
+            var wireless = await _adb.EnableUsbWifiAndConnectAsync(usbDevice.Serial, cancellationToken);
+            AppLog.Info("ADB", "Automatic USB-to-Wi-Fi discovery result: success=" + wireless.IsSuccess + "; message='" + wireless.Message + "'.");
+            if (wireless.IsSuccess)
+            {
+                var wirelessDevices = await _adb.ListDevicesAsync(cancellationToken);
+                if (wirelessDevices.IsAvailable)
+                {
+                    foreach (var device in wirelessDevices.Devices.Where(d => d.Serial.Contains(':')))
+                    {
+                        if (!Devices.Any(existing => existing.Serial == device.Serial))
+                            Devices.Add(device);
+                    }
+                    var wirelessDevice = Devices.FirstOrDefault(device =>
+                        device.Serial.Contains(':') && device.State == "device");
+                    if (wirelessDevice is not null)
+                        _settings.DeviceEndpoint = wirelessDevice.Serial;
+                    PersistSettings();
+                }
+                ActivityTitle = "Wireless connection ready";
+                ActivityMessage = wireless.Message + " You can now unplug USB; SPECTRA will keep the wireless ADB connection.";
+            }
+            else
+            {
+                ActivityTitle = "Automatic Wi-Fi discovery needs attention";
+                ActivityMessage = wireless.Message + " Keep USB connected; you can retry after checking Quest Wi-Fi and Developer settings.";
+            }
+        }
 
         if (SelectedDevice is null)
             ConnectionSummary = "No headset connected";
