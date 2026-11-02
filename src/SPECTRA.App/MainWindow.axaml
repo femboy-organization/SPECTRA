@@ -132,7 +132,7 @@
               <local:ScrcpyVideoHost x:Name="VideoHost"/>
             </Border>
             <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom" Margin="12" ZIndex="10">
+                        VerticalAlignment="Bottom" Margin="12" Panel.ZIndex="10">
               <Button Content="▣" Width="38" Height="38" Padding="0"
                       Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
                       ToolTip.Tip="Keep SPECTRA above other windows"
@@ -288,7 +288,7 @@
               <Slider Minimum="-100" Maximum="100" Value="{Binding CalibrationOffsetX}"/>
               <TextBlock Text="{Binding CalibrationOffsetY, StringFormat='Vertical · {0:0} px'}" FontSize="11"/>
               <Slider Minimum="-100" Maximum="100" Value="{Binding CalibrationOffsetY}"/>
-              <Button Content="Apply calibration" Command="{Binding ApplyCalibrationCommand}" Classes="primary"/>
+              <Button Content="Apply changes" Command="{Binding ApplyCalibrationCommand}" Classes="primary"/>
               <TextBlock Text="Eye, crop, rotation and encoder quality are fixed when scrcpy starts; applying those requires restarting the video process. Calibration offset and theme apply live." FontSize="10" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
             </StackPanel>
           </Border>
