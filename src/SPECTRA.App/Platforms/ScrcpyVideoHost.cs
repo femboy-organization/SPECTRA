@@ -34,6 +34,8 @@ public sealed class ScrcpyVideoHost : NativeControlHost, IVideoSurface
 
     private IntPtr _hostHandle;
     private IntPtr _scrcpyHandle;
+    private double _calibrationOffsetX;
+    private double _calibrationOffsetY;
 
     protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
     {
@@ -158,6 +160,14 @@ public sealed class ScrcpyVideoHost : NativeControlHost, IVideoSurface
             ShowWindow(_hostHandle, SwHide);
     }
 
+    public void SetCalibrationOffset(double x, double y)
+    {
+        _calibrationOffsetX = Math.Clamp(double.IsFinite(x) ? x : 0, -100, 100);
+        _calibrationOffsetY = Math.Clamp(double.IsFinite(y) ? y : 0, -100, 100);
+        ResizeHostedWindows(Bounds.Size);
+        AppLog.Info("Calibration", $"Live preview offset applied: x={_calibrationOffsetX:0.0} DIP, y={_calibrationOffsetY:0.0} DIP.");
+    }
+
     private void ResizeHostedWindows(Size size)
     {
         if (!OperatingSystem.IsWindows() || _hostHandle == IntPtr.Zero || !IsWindow(_hostHandle))
@@ -172,8 +182,10 @@ public sealed class ScrcpyVideoHost : NativeControlHost, IVideoSurface
 
         if (_scrcpyHandle != IntPtr.Zero && IsWindow(_scrcpyHandle))
         {
-            SetWindowPos(_scrcpyHandle, IntPtr.Zero, 0, 0, width, height,
-                SwpNoZOrder | SwpNoActivate | SwpShowWindow);
+            var offsetX = (int)Math.Round(_calibrationOffsetX * scale);
+            var offsetY = (int)Math.Round(_calibrationOffsetY * scale);
+            SetWindowPos(_scrcpyHandle, IntPtr.Zero, offsetX, offsetY,
+                width, height, SwpNoZOrder | SwpNoActivate | SwpShowWindow);
         }
     }
 
