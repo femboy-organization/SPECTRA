@@ -129,18 +129,20 @@
             <Border x:Name="VideoFrame" Width="800" Height="450"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Background="#151515" BorderThickness="0" CornerRadius="0" ClipToBounds="True">
-              <local:ScrcpyVideoHost x:Name="VideoHost"/>
+              <Grid>
+                <local:ScrcpyVideoHost x:Name="VideoHost"/>
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom" Margin="12" Panel.ZIndex="10">
+                  <Button Content="▣" Width="38" Height="38" Padding="0"
+                          Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
+                          ToolTip.Tip="Keep SPECTRA above other windows"
+                          Click="OnAlwaysOnTopClick"/>
+                  <Button Content="⛶" Width="38" Height="38" Padding="0"
+                          Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
+                          ToolTip.Tip="Fullscreen (F)" Click="OnFullscreenClick"/>
+                </StackPanel>
+              </Grid>
             </Border>
-            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom" Margin="12" Panel.ZIndex="10">
-              <Button Content="▣" Width="38" Height="38" Padding="0"
-                      Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
-                      ToolTip.Tip="Keep SPECTRA above other windows"
-                      Click="OnAlwaysOnTopClick"/>
-              <Button Content="⛶" Width="38" Height="38" Padding="0"
-                      Background="#99000000" Foreground="{DynamicResource SurfaceBg}" CornerRadius="7"
-                      ToolTip.Tip="Fullscreen (F)" Click="OnFullscreenClick"/>
-            </StackPanel>
             <Border IsVisible="{Binding IsVideoPlaceholderVisible}" Background="{DynamicResource SurfaceAlt}">
               <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="13" MaxWidth="400">
                 <Border Width="70" Height="70" CornerRadius="35" Background="#E5D7CA">
