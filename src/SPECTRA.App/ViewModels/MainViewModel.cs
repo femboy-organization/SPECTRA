@@ -725,7 +725,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                         if (!Devices.Any(existing => existing.Serial == device.Serial)) Devices.Add(device);
                     }
                     var wirelessDevice = Devices.FirstOrDefault(device => device.Serial.Contains(':') && device.State == "device");
-                    if (wirelessDevice is not null) { _settings.DeviceEndpoint = wirelessDevice.Serial; PersistSettings(); }
+                    if (wirelessDevice is not null)
+                    {
+                        _settings.DeviceEndpoint = wirelessDevice.Serial;
+                        if (!IsStreaming) SelectedDevice = wirelessDevice;
+                        PersistSettings();
+                    }
                 }
                 ActivityTitle = "Wireless connection ready";
                 ActivityMessage = wireless.Message + " You can now unplug USB; SPECTRA will keep the wireless ADB connection.";
