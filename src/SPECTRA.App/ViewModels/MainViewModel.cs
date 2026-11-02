@@ -242,6 +242,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 _settings.VideoEye = safe;
                 PersistSettings();
                 AppLog.Info("Settings", $"Preview eye selection changed to {safe}.");
+                if (IsStreaming)
+                {
+                    ActivityTitle = "Eye selection saved";
+                    ActivityMessage = "The selected eye and crop are saved for the next stream. Applying a different crop requires restarting the scrcpy video process.";
+                }
             }
         }
     }
@@ -258,6 +263,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 OnPropertyChanged(nameof(RotationDescription));
                 PersistSettings();
                 AppLog.Info("Settings", $"Preview rotation changed to {(int)safe} degrees clockwise.");
+                if (IsStreaming)
+                {
+                    ActivityTitle = "Rotation saved";
+                    ActivityMessage = "The new rotation is saved for the next stream. The current scrcpy process accepts its angle only at startup.";
+                }
             }
         }
     }
@@ -361,8 +371,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsDeviceAuthorized => SelectedDevice?.State == "device";
     public bool CanRefreshDevices => !IsBusy;
     public bool CanChooseDevice => !IsBusy && !IsStreaming;
-    public bool CanEditQuality => !IsBusy && !IsStreaming;
-    public bool CanEditVideo => !IsBusy && !IsStreaming;
+    public bool CanEditQuality => !IsBusy;
+    public bool CanEditVideo => !IsBusy;
     public bool CanEditQualityAndManualQuality => CanEditQuality && !IsAutomaticQuality;
     public double ManualQualityOpacity => IsAutomaticQuality ? 0.56 : 1.0;
     public IBrush ConnectionDotBrush => IsStreaming
