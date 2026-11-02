@@ -212,6 +212,8 @@
                            FontSize="11" Foreground="#A9A5B2" TextWrapping="Wrap"/>
               </StackPanel>
               <TextBlock Text="Eye" FontSize="11" Foreground="#A9A5B2"/>
+              <TextBlock Text="Default alignment: left +22° · right −22° (independent settings)"
+                         FontSize="10" Foreground="#A9A5B2" TextWrapping="Wrap"/>
               <ComboBox ItemsSource="{Binding EyeOptions}" SelectedItem="{Binding SelectedEye}"
                         IsEnabled="{Binding CanEditVideo}" MinHeight="38"/>
               <Grid ColumnDefinitions="*,Auto">
