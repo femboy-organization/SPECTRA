@@ -253,7 +253,11 @@ jobs:
             - scrcpy video window hosted inside the main SPECTRA window.
             - Automatic and manual resolution / FPS / bitrate presets.
             - Selectable left/right eye with a flat 16:9 crop safely inside the circular lens field.
+            - Independent left/right eye alignment defaults (+22° / -22°), with separately persisted rotation controls.
             - Adjustable preview rotation from -180° to +180° in 1° increments.
+            - Muted pastel dark theme enabled by default.
+            - Saved Wi-Fi ADB endpoint auto-connect on startup and automatic reconnect retries.
+            - SDL3 vertical synchronization enabled for scrcpy rendering to reduce tearing.
             - Borderless 16:9 preview with no circular lens edge or square framing.
             - Fullscreen mode with Escape to exit.
             - Self-contained Windows installer and portable ZIP.
