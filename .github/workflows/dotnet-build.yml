@@ -406,7 +406,12 @@ jobs:
           for tag in "${tags[@]}"; do
             mkdir -p "$temp/$tag/assets"
             gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > "$temp/$tag/release.json"
-            gh release download "$tag" --dir "$temp/$tag/assets"
+            # Reuse pre.7 files already restored from the original Actions artifact.
+            if [[ "$tag" == "$missing_tag" ]] && find "$temp/$tag/assets" -maxdepth 1 -type f -print -quit | grep -q .; then
+              echo "Using the pre.7 assets restored from the original Actions artifact."
+            else
+              gh release download "$tag" --dir "$temp/$tag/assets"
+            fi
             if ! find "$temp/$tag/assets" -maxdepth 1 -type f -print -quit | grep -q .; then
               echo "No assets downloaded for $tag; refusing to change any releases." >&2
               exit 1
