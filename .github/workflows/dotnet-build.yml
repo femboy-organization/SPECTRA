@@ -22,6 +22,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
+      file_version: ${{ steps.version.outputs.file_version }}
     steps:
       - name: Select deterministic build version
         id: version
@@ -29,19 +30,60 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ) ]]; then
+          if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
+            version="\${GITHUB_REF#refs/heads/release/}"
+            if [[ ! "$version" =~ ^0\.1\.0-pre\.[0-9]+$ ]]; then
+              echo "Release branch must be named release/0.1.0-pre.N; got: $GITHUB_REF" >&2
+              exit 1
+            fi
+          elif [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ) ]]; then
             current="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select(.tag_name | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | (.tag_name | capture("^v0\\.1\\.0-pre\\.(?<n>[0-9]+)$").n | tonumber)] | max // 0')"
             next=$((current + 1))
             version="0.1.0-pre.$next"
           else
             version="0.1.0-ci.$GITHUB_RUN_NUMBER"
           fi
+
+          if [[ "$version" =~ ^0\.1\.0-pre\.([0-9]+)$ ]]; then
+            file_version="0.1.0.\${BASH_REMATCH[1]}"
+          else
+            file_version="0.0.0.$GITHUB_RUN_NUMBER"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Building SPECTRA version $version"
+          echo "file_version=$file_version" >> "$GITHUB_OUTPUT"
+          echo "Building SPECTRA version $version (PE product version $file_version)"
+      - name: Verify release signing configuration
+        if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'workflow_dispatch')
+        env:
+          SIGNPATH_API_TOKEN: \${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: \${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: \${{ vars.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: \${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          SIGNPATH_PORTABLE_CONFIG: \${{ vars.SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG }}
+          SIGNPATH_INSTALLER_CONFIG: \${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
+        shell: bash
+        run: |
+          missing=()
+          [[ -n "$SIGNPATH_API_TOKEN" ]] || missing+=("secret SIGNPATH_API_TOKEN")
+          [[ -n "$SIGNPATH_ORGANIZATION_ID" ]] || missing+=("variable SIGNPATH_ORGANIZATION_ID")
+          [[ -n "$SIGNPATH_PROJECT_SLUG" ]] || missing+=("variable SIGNPATH_PROJECT_SLUG")
+          [[ -n "$SIGNPATH_SIGNING_POLICY_SLUG" ]] || missing+=("variable SIGNPATH_SIGNING_POLICY_SLUG")
+          [[ -n "$SIGNPATH_PORTABLE_CONFIG" ]] || missing+=("variable SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG")
+          [[ -n "$SIGNPATH_INSTALLER_CONFIG" ]] || missing+=("variable SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG")
+          if (( \${#missing[@]} > 0 )); then
+            printf 'Release blocked: configure the following SignPath settings first:\\n'
+            printf ' - %s\\n' "\${missing[@]}"
+            exit 1
+          fi
+          echo "SignPath release signing is configured."
+
 
   build:
     needs: prepare
     runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -87,22 +129,26 @@ jobs:
         shell: pwsh
         env:
           SPECTRA_VERSION: ${{ needs.prepare.outputs.version }}
+          SPECTRA_FILE_VERSION: ${{ needs.prepare.outputs.file_version }}
         run: |
           $ErrorActionPreference = 'Stop'
           $publish = 'artifacts\publish'
           $appOutput = Join-Path $publish 'bin'
           New-Item -ItemType Directory -Force -Path $publish, $appOutput | Out-Null
-          dotnet publish src/SPECTRA.App/SPECTRA.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=$env:SPECTRA_VERSION -p:PublishSingleFile=false -p:IncludeNativeLibrariesForSelfExtract=true --output $appOutput
+          dotnet publish src/SPECTRA.App/SPECTRA.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=$env:SPECTRA_VERSION -p:FileVersion=$env:SPECTRA_FILE_VERSION -p:InformationalVersion=$env:SPECTRA_FILE_VERSION -p:Product=SPECTRA -p:PublishSingleFile=false -p:IncludeNativeLibrariesForSelfExtract=true --output $appOutput
           if ($LASTEXITCODE -ne 0) { throw 'Publishing the SPECTRA application failed.' }
           if (-not (Test-Path (Join-Path $appOutput 'SPECTRA.exe'))) { throw 'The application executable was not produced under bin.' }
 
       - name: Publish diagnostic single-file top-level launcher
         shell: pwsh
+        env:
+          SPECTRA_VERSION: ${{ needs.prepare.outputs.version }}
+          SPECTRA_FILE_VERSION: ${{ needs.prepare.outputs.file_version }}
         run: |
           $ErrorActionPreference = 'Stop'
           $launcherOutput = 'artifacts\launcher'
           New-Item -ItemType Directory -Force -Path $launcherOutput | Out-Null
-          dotnet publish src/SPECTRA.Launcher/SPECTRA.Launcher.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishAot=false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --output $launcherOutput
+          dotnet publish src/SPECTRA.Launcher/SPECTRA.Launcher.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=$env:SPECTRA_VERSION -p:FileVersion=$env:SPECTRA_FILE_VERSION -p:InformationalVersion=$env:SPECTRA_FILE_VERSION -p:Product=SPECTRA -p:PublishAot=false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --output $launcherOutput
           if ($LASTEXITCODE -ne 0) { throw 'Publishing the top-level launcher failed.' }
           $launcher = Join-Path $launcherOutput 'SPECTRA.Launcher.exe'
           if (-not (Test-Path $launcher)) { throw 'The single-file SPECTRA launcher executable was not produced.' }
@@ -110,6 +156,99 @@ jobs:
           if ($launcherDlls.Count -gt 0) { throw "The launcher publish must be single-file. Unexpected DLLs: $($launcherDlls.Name -join ', ')" }
           Copy-Item -LiteralPath $launcher -Destination 'artifacts\publish\SPECTRA.exe' -Force
           Copy-Item -LiteralPath 'artifacts\publish\bin\THIRD-PARTY-NOTICES.md' -Destination 'artifacts\publish\THIRD-PARTY-NOTICES.md' -Force
+
+      - name: Validate and stage SPECTRA-owned binaries for signing
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        shell: pwsh
+        env:
+          SPECTRA_FILE_VERSION: \${{ needs.prepare.outputs.file_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $publish = (Resolve-Path 'artifacts\\publish').Path
+          $firstPartyFiles = @(
+            'SPECTRA.exe',
+            'bin\\SPECTRA.exe',
+            'bin\\SPECTRA.dll',
+            'bin\\SPECTRA.Core.dll'
+          )
+
+          foreach ($relativePath in $firstPartyFiles) {
+            $filePath = Join-Path $publish $relativePath
+            if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+              throw "Required first-party binary is missing: $relativePath"
+            }
+
+            $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($filePath)
+            if ($info.ProductName -ne 'SPECTRA') {
+              throw "Unexpected ProductName in $relativePath: '$($info.ProductName)'"
+            }
+            if ($info.ProductVersion -ne $env:SPECTRA_FILE_VERSION) {
+              throw "Unexpected ProductVersion in $relativePath: '$($info.ProductVersion)' (expected '$env:SPECTRA_FILE_VERSION')"
+            }
+          }
+
+          $payload = 'artifacts\\signing\\payload'
+          New-Item -ItemType Directory -Force -Path $payload | Out-Null
+          Get-ChildItem -LiteralPath $publish -Force | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination $payload -Recurse -Force
+          }
+          Write-Host "Staged only the SPECTRA package payload; upstream scrcpy/ADB and third-party libraries are not selected for signing."
+
+      - name: Upload unsigned application payload to GitHub Actions
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        id: upload-unsigned-payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: spectra-unsigned-payload-\${{ needs.prepare.outputs.version }}
+          path: artifacts/signing/payload/**
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Submit SPECTRA application signing request
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: \${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: \${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: \${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: \${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: \${{ vars.SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: \${{ steps.upload-unsigned-payload.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: "3600"
+          output-artifact-directory: artifacts/signing/signed-payload
+          parameters: |
+            fileVersion: \${{ toJSON(needs.prepare.outputs.file_version) }}
+
+      - name: Restore and verify signed SPECTRA application payload
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        shell: pwsh
+        env:
+          SPECTRA_FILE_VERSION: \${{ needs.prepare.outputs.file_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $signedRoot = 'artifacts\\signing\\signed-payload'
+          $publish = 'artifacts\\publish'
+          if (-not (Test-Path -LiteralPath $signedRoot -PathType Container)) {
+            throw 'SignPath did not return the signed application payload.'
+          }
+
+          Get-ChildItem -LiteralPath $signedRoot -Force | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination $publish -Recurse -Force
+          }
+
+          foreach ($relativePath in @('SPECTRA.exe', 'bin\\SPECTRA.exe', 'bin\\SPECTRA.dll', 'bin\\SPECTRA.Core.dll')) {
+            $filePath = Join-Path $publish $relativePath
+            $signature = Get-AuthenticodeSignature -LiteralPath $filePath
+            if ($signature.Status -ne 'Valid') {
+              throw "Authenticode verification failed for $relativePath: $($signature.Status) $($signature.StatusMessage)"
+            }
+            $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($filePath)
+            if ($info.ProductName -ne 'SPECTRA' -or $info.ProductVersion -ne $env:SPECTRA_FILE_VERSION) {
+              throw "Signed metadata changed or is invalid for $relativePath."
+            }
+            Write-Host "Verified Authenticode signature: $relativePath ($($signature.SignerCertificate.Subject))"
+          }
 
       - name: Smoke-test packaged launcher and application startup
         shell: pwsh
@@ -170,6 +309,7 @@ jobs:
         shell: pwsh
         env:
           SPECTRA_VERSION: ${{ needs.prepare.outputs.version }}
+          SPECTRA_FILE_VERSION: ${{ needs.prepare.outputs.file_version }}
         run: |
           $ErrorActionPreference = 'Stop'
           $version = $env:SPECTRA_VERSION
@@ -196,16 +336,82 @@ jobs:
           $programFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
           $iscc = Join-Path $programFilesX86 'Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found at $iscc" }
-          & $iscc "/DMyAppVersion=$version" 'build\installer\SPECTRA.iss'
+          & $iscc "/DMyAppVersion=$version" "/DMyFileVersion=$env:SPECTRA_FILE_VERSION" 'build\installer\SPECTRA.iss'
           if ($LASTEXITCODE -ne 0) { throw 'Creating the installer failed.' }
 
           if (-not (Test-Path $portable) -or (Get-Item $portable).Length -lt 1000000) { throw 'Portable ZIP is missing or unexpectedly small.' }
           if (-not (Test-Path $installer) -or (Get-Item $installer).Length -lt 1000000) { throw 'Installer is missing or unexpectedly small.' }
 
-          $zipHash = (Get-FileHash -LiteralPath $portable -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$zipHash  $(Split-Path $portable -Leaf)" | Set-Content -LiteralPath "$portable.sha256" -Encoding ascii
-          $setupHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$setupHash  $(Split-Path $installer -Leaf)" | Set-Content -LiteralPath "$installer.sha256" -Encoding ascii
+
+      - name: Upload unsigned installer to GitHub Actions
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        id: upload-unsigned-installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: spectra-unsigned-installer-\${{ needs.prepare.outputs.version }}
+          path: artifacts/SPECTRA-\${{ needs.prepare.outputs.version }}-Setup-win-x64.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Submit installer signing request
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: \${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: \${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: \${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: \${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: \${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: \${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: "3600"
+          output-artifact-directory: artifacts/signing/signed-installer
+          parameters: |
+            releaseVersion: \${{ toJSON(needs.prepare.outputs.version) }}
+            fileVersion: \${{ toJSON(needs.prepare.outputs.file_version) }}
+
+      - name: Restore and verify signed installer
+        if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
+        shell: pwsh
+        env:
+          SPECTRA_VERSION: \${{ needs.prepare.outputs.version }}
+          SPECTRA_FILE_VERSION: \${{ needs.prepare.outputs.file_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $destination = "artifacts\\SPECTRA-$env:SPECTRA_VERSION-Setup-win-x64.exe"
+          $signedRoot = 'artifacts\\signing\\signed-installer'
+          $signedFiles = @(Get-ChildItem -LiteralPath $signedRoot -Filter '*.exe' -File -Recurse)
+          if ($signedFiles.Count -ne 1) {
+            throw "Expected exactly one signed installer from SignPath, found $($signedFiles.Count)."
+          }
+
+          Copy-Item -LiteralPath $signedFiles[0].FullName -Destination $destination -Force
+          $signature = Get-AuthenticodeSignature -LiteralPath $destination
+          if ($signature.Status -ne 'Valid') {
+            throw "Installer Authenticode verification failed: $($signature.Status) $($signature.StatusMessage)"
+          }
+
+          $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($destination)
+          if ($info.ProductName -ne 'SPECTRA' -or $info.ProductVersion -ne $env:SPECTRA_FILE_VERSION) {
+            throw "Installer product metadata is invalid. Product='$($info.ProductName)', version='$($info.ProductVersion)'."
+          }
+          Write-Host "Verified installer signature: $($signature.SignerCertificate.Subject)"
+
+      - name: Generate SHA-256 checksums after signing
+        shell: pwsh
+        env:
+          SPECTRA_VERSION: \${{ needs.prepare.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $portable = "artifacts\\SPECTRA-$env:SPECTRA_VERSION-win-x64.zip"
+          $installer = "artifacts\\SPECTRA-$env:SPECTRA_VERSION-Setup-win-x64.exe"
+          foreach ($path in @($portable, $installer)) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "Release artifact is missing before checksum generation: $path"
+            }
+            $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $(Split-Path $path -Leaf)" | Set-Content -LiteralPath "$path.sha256" -Encoding ascii
+          }
           Get-ChildItem artifacts | Select-Object Name, Length | Format-Table -AutoSize
 
       - name: Upload verified release files
@@ -221,7 +427,7 @@ jobs:
           retention-days: 30
 
   publish:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [prepare, build]
     runs-on: ubuntu-latest
     permissions:
@@ -246,6 +452,8 @@ jobs:
             ## SPECTRA v${{ needs.prepare.outputs.version }}
 
             Windows x64 pre-release of the C# / Avalonia rewrite.
+
+            **Code signing:** The SPECTRA-owned application binaries and installer are Authenticode-signed through SignPath Foundation after manual approval. See [CODE_SIGNING.md](https://github.com/femboy-organization/SPECTRA/blob/${{ github.sha }}/CODE_SIGNING.md) for scope and limitations. Upstream tools and third-party binaries are not signed with the SPECTRA certificate.
 
             ### Included
             - USB ADB device discovery and connection status.
