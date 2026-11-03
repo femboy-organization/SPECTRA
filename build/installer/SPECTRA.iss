@@ -2,6 +2,10 @@
   #define MyAppVersion "0.1.0"
 #endif
 
+#ifndef MyFileVersion
+  #define MyFileVersion "0.1.0.0"
+#endif
+
 #define MyAppName "SPECTRA"
 #define MyAppPublisher "femboy-organization"
 
