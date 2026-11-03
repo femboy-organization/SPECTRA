@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="fileVersion" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file-set product-name="SPECTRA" product-version="${fileVersion}" file-version="${fileVersion}">
+      <include path="SPECTRA.exe" />
+      <include path="bin/SPECTRA.exe" />
+      <include path="bin/SPECTRA.dll" />
+      <include path="bin/SPECTRA.Core.dll" />
+      <for-each>
+        <authenticode-sign hash-algorithm="sha256" description="SPECTRA Windows application" />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>
