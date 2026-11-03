@@ -2,7 +2,7 @@
 
 ## Current status
 
-The SignPath integration is prepared in the `release/0.1.0-pre.15` branch, but the SPECTRA project has not yet been provisioned with a SignPath Foundation certificate. No SPECTRA release should be described as signed until a release has completed both signing requests and its Authenticode signatures have been verified.
+The SignPath integration is prepared in the `release/0.1.0-pre.16` branch, but the SPECTRA project has not yet been provisioned with a SignPath Foundation certificate. No SPECTRA release should be described as signed until a release has completed both signing requests and its Authenticode signatures have been verified.
 
 The intended provider is **Free code signing provided by SignPath.io, certificate by SignPath Foundation**. This is pending project acceptance and certificate provisioning; it is not a statement that a certificate has already been issued.
 
@@ -49,6 +49,6 @@ After SignPath Foundation accepts the project and provisions the certificate:
    - `SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG`
    - `SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG`
 6. Add the SignPath API token as the GitHub Actions secret `SIGNPATH_API_TOKEN`. Never commit the token or a certificate/private key to the repository.
-7. Run the workflow manually on `release/0.1.0-pre.15`. Confirm that both requests were approved and that the published release assets contain valid signatures.
+7. Run the workflow manually on `release/0.1.0-pre.16`. Confirm that both requests were approved and that the published release assets contain valid signatures.
 
 The release workflow deliberately fails closed when any of the required signing settings are missing. It must not publish an unsigned release as though signing had succeeded.
