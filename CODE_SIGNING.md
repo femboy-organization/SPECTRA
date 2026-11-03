@@ -50,6 +50,6 @@ After SignPath Foundation accepts the project and provisions the certificate:
    - `SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG`
    - `SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG`
 6. Add the SignPath API token as the GitHub Actions secret `SIGNPATH_API_TOKEN`. Never commit the token or a certificate/private key to the repository.
-7. Run the workflow manually on `release/0.1.0-pre.16`. Confirm that both requests were approved and that the published release assets contain valid signatures.
+7. Run the workflow manually on `release/0.1.0-pre.16` and set `publish_release` to `true`. Confirm that both requests were approved and that the published release assets contain valid signatures. Leave `publish_release` set to `false` for a validation build that runs restore/build/tests and package smoke tests without signing or publishing a release.
 
 The release workflow deliberately fails closed when any of the required signing settings are missing. It must not publish an unsigned release as though signing had succeeded.
