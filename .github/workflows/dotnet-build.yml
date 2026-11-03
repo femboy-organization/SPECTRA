@@ -37,7 +37,7 @@ jobs:
               exit 1
             fi
           elif [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ) ]]; then
-            current="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select(.tag_name | test("^v0\\.1\\.0-pre\\.[0-9]+$")) | (.tag_name | capture("^v0\\.1\\.0-pre\\.(?<n>[0-9]+)$").n | tonumber)] | max // 0')"
+            current="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v0.1.0-pre." --jq '[.[].ref | capture("^refs/tags/v0\\.1\\.0-pre\\.(?<n>[0-9]+)$").n | tonumber] | max // 0')"
             next=$((current + 1))
             version="0.1.0-pre.$next"
           else
