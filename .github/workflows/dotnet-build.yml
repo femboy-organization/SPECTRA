@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
-            version="\${GITHUB_REF#refs/heads/release/}"
+            version="${GITHUB_REF#refs/heads/release/}"
             if [[ ! "$version" =~ ^0\.1\.0-pre\.[0-9]+$ ]]; then
               echo "Release branch must be named release/0.1.0-pre.N; got: $GITHUB_REF" >&2
               exit 1
@@ -45,7 +45,7 @@ jobs:
           fi
 
           if [[ "$version" =~ ^0\.1\.0-pre\.([0-9]+)$ ]]; then
-            file_version="0.1.0.\${BASH_REMATCH[1]}"
+            file_version="0.1.0.${BASH_REMATCH[1]}"
           else
             file_version="0.0.0.$GITHUB_RUN_NUMBER"
           fi
@@ -55,12 +55,12 @@ jobs:
       - name: Verify release signing configuration
         if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'workflow_dispatch')
         env:
-          SIGNPATH_API_TOKEN: \${{ secrets.SIGNPATH_API_TOKEN }}
-          SIGNPATH_ORGANIZATION_ID: \${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          SIGNPATH_PROJECT_SLUG: \${{ vars.SIGNPATH_PROJECT_SLUG }}
-          SIGNPATH_SIGNING_POLICY_SLUG: \${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
-          SIGNPATH_PORTABLE_CONFIG: \${{ vars.SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG }}
-          SIGNPATH_INSTALLER_CONFIG: \${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          SIGNPATH_PORTABLE_CONFIG: ${{ vars.SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG }}
+          SIGNPATH_INSTALLER_CONFIG: ${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
         shell: bash
         run: |
           missing=()
@@ -70,9 +70,9 @@ jobs:
           [[ -n "$SIGNPATH_SIGNING_POLICY_SLUG" ]] || missing+=("variable SIGNPATH_SIGNING_POLICY_SLUG")
           [[ -n "$SIGNPATH_PORTABLE_CONFIG" ]] || missing+=("variable SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG")
           [[ -n "$SIGNPATH_INSTALLER_CONFIG" ]] || missing+=("variable SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG")
-          if (( \${#missing[@]} > 0 )); then
-            printf 'Release blocked: configure the following SignPath settings first:\\n'
-            printf ' - %s\\n' "\${missing[@]}"
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Release blocked: configure the following SignPath settings first:\n'
+            printf ' - %s\n' "${missing[@]}"
             exit 1
           fi
           echo "SignPath release signing is configured."
@@ -161,15 +161,15 @@ jobs:
         if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
         shell: pwsh
         env:
-          SPECTRA_FILE_VERSION: \${{ needs.prepare.outputs.file_version }}
+          SPECTRA_FILE_VERSION: ${{ needs.prepare.outputs.file_version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $publish = (Resolve-Path 'artifacts\\publish').Path
+          $publish = (Resolve-Path 'artifacts\publish').Path
           $firstPartyFiles = @(
             'SPECTRA.exe',
-            'bin\\SPECTRA.exe',
-            'bin\\SPECTRA.dll',
-            'bin\\SPECTRA.Core.dll'
+            'bin\SPECTRA.exe',
+            'bin\SPECTRA.dll',
+            'bin\SPECTRA.Core.dll'
           )
 
           foreach ($relativePath in $firstPartyFiles) {
@@ -187,7 +187,7 @@ jobs:
             }
           }
 
-          $payload = 'artifacts\\signing\\payload'
+          $payload = 'artifacts\signing\payload'
           New-Item -ItemType Directory -Force -Path $payload | Out-Null
           Get-ChildItem -LiteralPath $publish -Force | ForEach-Object {
             Copy-Item -LiteralPath $_.FullName -Destination $payload -Recurse -Force
@@ -199,7 +199,7 @@ jobs:
         id: upload-unsigned-payload
         uses: actions/upload-artifact@v4
         with:
-          name: spectra-unsigned-payload-\${{ needs.prepare.outputs.version }}
+          name: spectra-unsigned-payload-${{ needs.prepare.outputs.version }}
           path: artifacts/signing/payload/**
           if-no-files-found: error
           retention-days: 1
@@ -208,27 +208,27 @@ jobs:
         if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
         uses: signpath/github-action-submit-signing-request@v3
         with:
-          api-token: \${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: \${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: \${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: \${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: \${{ vars.SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG }}
-          github-artifact-id: \${{ steps.upload-unsigned-payload.outputs.artifact-id }}
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_PORTABLE_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-payload.outputs.artifact-id }}
           wait-for-completion: true
           wait-for-completion-timeout-in-seconds: "3600"
           output-artifact-directory: artifacts/signing/signed-payload
           parameters: |
-            fileVersion: \${{ toJSON(needs.prepare.outputs.file_version) }}
+            fileVersion: ${{ toJSON(needs.prepare.outputs.file_version) }}
 
       - name: Restore and verify signed SPECTRA application payload
         if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
         shell: pwsh
         env:
-          SPECTRA_FILE_VERSION: \${{ needs.prepare.outputs.file_version }}
+          SPECTRA_FILE_VERSION: ${{ needs.prepare.outputs.file_version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $signedRoot = 'artifacts\\signing\\signed-payload'
-          $publish = 'artifacts\\publish'
+          $signedRoot = 'artifacts\signing\signed-payload'
+          $publish = 'artifacts\publish'
           if (-not (Test-Path -LiteralPath $signedRoot -PathType Container)) {
             throw 'SignPath did not return the signed application payload.'
           }
@@ -237,7 +237,7 @@ jobs:
             Copy-Item -LiteralPath $_.FullName -Destination $publish -Recurse -Force
           }
 
-          foreach ($relativePath in @('SPECTRA.exe', 'bin\\SPECTRA.exe', 'bin\\SPECTRA.dll', 'bin\\SPECTRA.Core.dll')) {
+          foreach ($relativePath in @('SPECTRA.exe', 'bin\SPECTRA.exe', 'bin\SPECTRA.dll', 'bin\SPECTRA.Core.dll')) {
             $filePath = Join-Path $publish $relativePath
             $signature = Get-AuthenticodeSignature -LiteralPath $filePath
             if ($signature.Status -ne 'Valid') {
@@ -348,8 +348,8 @@ jobs:
         id: upload-unsigned-installer
         uses: actions/upload-artifact@v4
         with:
-          name: spectra-unsigned-installer-\${{ needs.prepare.outputs.version }}
-          path: artifacts/SPECTRA-\${{ needs.prepare.outputs.version }}-Setup-win-x64.exe
+          name: spectra-unsigned-installer-${{ needs.prepare.outputs.version }}
+          path: artifacts/SPECTRA-${{ needs.prepare.outputs.version }}-Setup-win-x64.exe
           if-no-files-found: error
           retention-days: 1
 
@@ -357,29 +357,29 @@ jobs:
         if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
         uses: signpath/github-action-submit-signing-request@v3
         with:
-          api-token: \${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: \${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: \${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: \${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: \${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
-          github-artifact-id: \${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
           wait-for-completion: true
           wait-for-completion-timeout-in-seconds: "3600"
           output-artifact-directory: artifacts/signing/signed-installer
           parameters: |
-            releaseVersion: \${{ toJSON(needs.prepare.outputs.version) }}
-            fileVersion: \${{ toJSON(needs.prepare.outputs.file_version) }}
+            releaseVersion: ${{ toJSON(needs.prepare.outputs.version) }}
+            fileVersion: ${{ toJSON(needs.prepare.outputs.file_version) }}
 
       - name: Restore and verify signed installer
         if: startsWith(needs.prepare.outputs.version, '0.1.0-pre.')
         shell: pwsh
         env:
-          SPECTRA_VERSION: \${{ needs.prepare.outputs.version }}
-          SPECTRA_FILE_VERSION: \${{ needs.prepare.outputs.file_version }}
+          SPECTRA_VERSION: ${{ needs.prepare.outputs.version }}
+          SPECTRA_FILE_VERSION: ${{ needs.prepare.outputs.file_version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $destination = "artifacts\\SPECTRA-$env:SPECTRA_VERSION-Setup-win-x64.exe"
-          $signedRoot = 'artifacts\\signing\\signed-installer'
+          $destination = "artifacts\SPECTRA-$env:SPECTRA_VERSION-Setup-win-x64.exe"
+          $signedRoot = 'artifacts\signing\signed-installer'
           $signedFiles = @(Get-ChildItem -LiteralPath $signedRoot -Filter '*.exe' -File -Recurse)
           if ($signedFiles.Count -ne 1) {
             throw "Expected exactly one signed installer from SignPath, found $($signedFiles.Count)."
@@ -400,11 +400,11 @@ jobs:
       - name: Generate SHA-256 checksums after signing
         shell: pwsh
         env:
-          SPECTRA_VERSION: \${{ needs.prepare.outputs.version }}
+          SPECTRA_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $portable = "artifacts\\SPECTRA-$env:SPECTRA_VERSION-win-x64.zip"
-          $installer = "artifacts\\SPECTRA-$env:SPECTRA_VERSION-Setup-win-x64.exe"
+          $portable = "artifacts\SPECTRA-$env:SPECTRA_VERSION-win-x64.zip"
+          $installer = "artifacts\SPECTRA-$env:SPECTRA_VERSION-Setup-win-x64.exe"
           foreach ($path in @($portable, $installer)) {
             if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
               throw "Release artifact is missing before checksum generation: $path"
