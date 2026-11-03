@@ -8,9 +8,10 @@ The intended provider is **Free code signing provided by SignPath.io, certificat
 
 ## Roles and approvals
 
-- **Committers and reviewers:** SPECTRA maintainers with write access to the [SPECTRA repository](https://github.com/femboy-organization/SPECTRA). Repository access is managed through GitHub.
-- **Signing approvers:** owners of the [femboy-organization GitHub organization](https://github.com/orgs/femboy-organization/people?query=role%3Aowner), provided they have access to the SignPath project. Each release signing request must receive manual approval from an authorized approver.
-- All people with repository write access or signing permissions must use multi-factor authentication on both GitHub and SignPath.
+- **Authors / committers:** maintainers trusted to push source and build-script changes. Membership is controlled by the [SPECTRA repository access list](https://github.com/femboy-organization/SPECTRA/settings/access).
+- **Reviewers:** maintainers with repository write access. Changes proposed by contributors who are not committers must be reviewed before merge; reviewer membership is controlled by the same [repository access list](https://github.com/femboy-organization/SPECTRA/settings/access).
+- **Approvers:** owners of the [femboy-organization GitHub organization](https://github.com/orgs/femboy-organization/people?query=role%3Aowner), provided they are explicitly granted access to the SignPath project. Every release signing request requires manual approval from an authorized approver.
+- All committers, reviewers, and approvers must use multi-factor authentication on both GitHub and SignPath.
 
 Changes to the release workflow, signing configuration, and build scripts require the same review as application source changes. A release is not eligible for signing merely because a workflow run succeeded.
 
