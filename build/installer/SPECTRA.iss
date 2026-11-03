@@ -24,6 +24,11 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 DisableProgramGroupPage=yes
 SetupLogging=yes
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoProductName={#MyAppName}
+VersionInfoVersion={#MyFileVersion}
+VersionInfoProductVersion={#MyFileVersion}
+VersionInfoProductTextVersion={#MyAppVersion}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
