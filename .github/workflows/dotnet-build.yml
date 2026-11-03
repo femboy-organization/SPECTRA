@@ -49,6 +49,12 @@ jobs:
           else
             file_version="0.0.0.$GITHUB_RUN_NUMBER"
           fi
+          if [[ "$version" =~ ^0\.1\.0-pre\.[0-9]+$ ]]; then
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
+              echo "Refusing to publish $version: Git tag v$version already exists. Release tags are never overwritten automatically." >&2
+              exit 1
+            fi
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "file_version=$file_version" >> "$GITHUB_OUTPUT"
           echo "Building SPECTRA version $version (PE product version $file_version)"
@@ -429,6 +435,9 @@ jobs:
   publish:
     if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [prepare, build]
+    concurrency:
+      group: spectra-release-publish
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -438,6 +447,17 @@ jobs:
         with:
           name: spectra-windows-${{ needs.prepare.outputs.version }}
           path: artifacts
+
+      - name: Refuse to overwrite an existing release tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Refusing to overwrite existing tag $RELEASE_TAG." >&2
+            exit 1
+          fi
 
       - name: Publish GitHub Pre-release
         uses: softprops/action-gh-release@v2
