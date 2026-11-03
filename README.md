@@ -67,6 +67,10 @@ Automated tests cover ADB output parsing, wireless endpoint validation, quality 
 
 SPECTRA currently targets Windows x64. Linux and macOS are not supported at runtime.
 
+## Code signing policy
+
+SPECTRA's SignPath Foundation integration is prepared but is not active until the project is accepted and a certificate is provisioned. No release is considered code-signed until its signatures are verified. See [CODE_SIGNING.md](CODE_SIGNING.md) for the current status, signing scope, approver policy, and setup requirements.
+
 ## Contributing and security
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report suspected vulnerabilities using the process in [SECURITY.md](SECURITY.md), not through a public issue. Bug reports and feature requests can be opened with the repository's [issue templates](https://github.com/femboy-organization/SPECTRA/issues/new/choose).
