@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Create and sign a GitHub pre-release (requires SignPath setup and manual approval)"
+        required: true
+        type: boolean
+        default: false
 
 # Serialize main-branch releases so two fast pushes cannot select and publish the same pre-release number.
 concurrency:
@@ -28,15 +34,18 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PUBLISH: ${{ inputs.publish_release }}
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
+          if [[ "$GITHUB_REF" == refs/heads/release/* && "$RELEASE_PUBLISH" == "true" ]]; then
             version="${GITHUB_REF#refs/heads/release/}"
             if [[ ! "$version" =~ ^0\.1\.0-pre\.[0-9]+$ ]]; then
               echo "Release branch must be named release/0.1.0-pre.N; got: $GITHUB_REF" >&2
               exit 1
             fi
-          elif [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ) ]]; then
+          elif [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
+            version="0.1.0-ci.$GITHUB_RUN_NUMBER"
+          elif [[ "$GITHUB_REF" == "refs/heads/main" && ( "$GITHUB_EVENT_NAME" == "push" || ( "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$RELEASE_PUBLISH" == "true" ) ) ]]; then
             current="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v0.1.0-pre." --jq '[.[].ref | capture("^refs/tags/v0\\.1\\.0-pre\\.(?<n>[0-9]+)$").n | tonumber] | max // 0')"
             next=$((current + 1))
             version="0.1.0-pre.$next"
@@ -59,7 +68,7 @@ jobs:
           echo "file_version=$file_version" >> "$GITHUB_OUTPUT"
           echo "Building SPECTRA version $version (PE product version $file_version)"
       - name: Verify release signing configuration
-        if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'workflow_dispatch')
+        if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release))) || (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'workflow_dispatch' && inputs.publish_release)
         env:
           SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
           SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -433,7 +442,7 @@ jobs:
           retention-days: 30
 
   publish:
-    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release))) || (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'workflow_dispatch' && inputs.publish_release)
     needs: [prepare, build]
     concurrency:
       group: spectra-release-publish
